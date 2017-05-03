@@ -18,7 +18,7 @@ use think\Model;
 class HasOne extends OneToOne
 {
     /**
-     * 构造函数
+     * 架构函数
      * @access public
      * @param Model  $parent     上级模型对象
      * @param string $model      模型名
@@ -44,13 +44,17 @@ class HasOne extends OneToOne
      */
     public function getRelation($subRelation = '', $closure = null)
     {
-        // 执行关联定义方法
         $localKey = $this->localKey;
+
         if ($closure) {
             call_user_func_array($closure, [ & $this->query]);
         }
+
         // 判断关联类型执行查询
-        $relationModel = $this->query->where($this->foreignKey, $this->parent->$localKey)->relation($subRelation)->find();
+        $relationModel = $this->query
+            ->where($this->foreignKey, $this->parent->$localKey)
+            ->relation($subRelation)
+            ->find();
 
         if ($relationModel) {
             $relationModel->setParent(clone $this->parent);
@@ -69,9 +73,13 @@ class HasOne extends OneToOne
         $table      = $this->query->getTable();
         $localKey   = $this->localKey;
         $foreignKey = $this->foreignKey;
-        return $this->parent->db()->alias('a')
+
+        return $this->parent->db()
+            ->alias('a')
             ->whereExists(function ($query) use ($table, $localKey, $foreignKey) {
-                $query->table([$table => 'b'])->field('b.' . $foreignKey)->whereExp('a.' . $localKey, '=b.' . $foreignKey);
+                $query->table([$table => 'b'])
+                    ->field('b.' . $foreignKey)
+                    ->whereExp('a.' . $localKey, '=b.' . $foreignKey);
             });
     }
 
@@ -86,6 +94,7 @@ class HasOne extends OneToOne
         $table    = $this->query->getTable();
         $model    = basename(str_replace('\\', '/', get_class($this->parent)));
         $relation = basename(str_replace('\\', '/', $this->model));
+
         if (is_array($where)) {
             foreach ($where as $key => $val) {
                 if (false === strpos($key, '.')) {
@@ -94,7 +103,8 @@ class HasOne extends OneToOne
                 }
             }
         }
-        return $this->parent->db()->alias($model)
+        return $this->parent->db()
+            ->alias($model)
             ->field($model . '.*')
             ->join($table . ' ' . $relation, $model . '.' . $this->localKey . '=' . $relation . '.' . $this->foreignKey, $this->joinType)
             ->where($where);
@@ -129,8 +139,10 @@ class HasOne extends OneToOne
                     $range,
                 ],
             ], $foreignKey, $relation, $subRelation, $closure);
+
             // 关联属性名
             $attr = Loader::parseName($relation);
+
             // 关联数据封装
             foreach ($resultSet as $result) {
                 // 关联模型
@@ -140,11 +152,13 @@ class HasOne extends OneToOne
                     $relationModel = $data[$result->$localKey];
                     $relationModel->setParent(clone $result);
                     $relationModel->isUpdate(true);
+
                     if (!empty($this->bindAttr)) {
                         // 绑定关联属性
                         $this->bindAttr($relationModel, $result, $this->bindAttr);
                     }
                 }
+
                 // 设置关联属性
                 $result->setRelation($attr, $relationModel);
             }
@@ -173,6 +187,7 @@ class HasOne extends OneToOne
             $relationModel = $data[$result->$localKey];
             $relationModel->setParent(clone $result);
             $relationModel->isUpdate(true);
+
             if (!empty($this->bindAttr)) {
                 // 绑定关联属性
                 $this->bindAttr($relationModel, $result, $this->bindAttr);

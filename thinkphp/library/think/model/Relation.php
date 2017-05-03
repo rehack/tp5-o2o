@@ -57,16 +57,6 @@ abstract class Relation
     }
 
     /**
-     * 获取关联的查询对象
-     * @access public
-     * @return Query
-     */
-    public function getQuery()
-    {
-        return $this->query;
-    }
-
-    /**
      * 封装关联数据集
      * @access public
      * @param array $resultSet 数据集
@@ -91,10 +81,12 @@ abstract class Relation
             $this->baseQuery();
 
             $result = call_user_func_array([$this->query, $method], $args);
+
             if ($result instanceof Query) {
                 return $this;
             } else {
                 $this->baseQuery = false;
+
                 return $result;
             }
         } else {

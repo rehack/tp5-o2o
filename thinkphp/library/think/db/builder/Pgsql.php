@@ -25,9 +25,10 @@ class Pgsql extends Builder
      * @param mixed $limit
      * @return string
      */
-    public function parseLimit($limit)
+    public function parseLimit($query, $limit)
     {
         $limitStr = '';
+
         if (!empty($limit)) {
             $limit = explode(',', $limit);
             if (count($limit) > 1) {
@@ -36,6 +37,7 @@ class Pgsql extends Builder
                 $limitStr .= ' LIMIT ' . $limit[0] . ' ';
             }
         }
+
         return $limitStr;
     }
 
@@ -46,25 +48,28 @@ class Pgsql extends Builder
      * @param array  $options
      * @return string
      */
-    protected function parseKey($key, $options = [])
+    protected function parseKey($query, $key)
     {
         $key = trim($key);
+
         if (strpos($key, '$.') && false === strpos($key, '(')) {
             // JSON字段支持
             list($field, $name) = explode('$.', $key);
             $key                = $field . '->>\'' . $name . '\'';
         } elseif (strpos($key, '.')) {
             list($table, $key) = explode('.', $key, 2);
-            if ('__TABLE__' == $table) {
-                $table = $this->query->getTable();
-            }
-            if (isset($options['alias'][$table])) {
-                $table = $options['alias'][$table];
+            $alias             = $query->getOptions('alias');
+            if (isset($alias[$table])) {
+                $table = $alias[$table];
+            } elseif ('__TABLE__' == $table) {
+                $table = $query->getTable();
             }
         }
+
         if (isset($table)) {
             $key = $table . '.' . $key;
         }
+
         return $key;
     }
 
@@ -73,7 +78,7 @@ class Pgsql extends Builder
      * @access protected
      * @return string
      */
-    protected function parseRand()
+    protected function parseRand($query)
     {
         return 'RANDOM()';
     }

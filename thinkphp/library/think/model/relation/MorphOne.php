@@ -55,7 +55,7 @@ class MorphOne extends Relation
         if ($closure) {
             call_user_func_array($closure, [ & $this->query]);
         }
-        $relationModel = $this->relation($subRelation)->find();
+        $relationModel = $this->query->relation($subRelation)->find();
 
         if ($relationModel) {
             $relationModel->setParent(clone $this->parent);
@@ -117,8 +117,10 @@ class MorphOne extends Relation
                 $morphKey  => ['in', $range],
                 $morphType => $type,
             ], $relation, $subRelation, $closure);
+
             // 关联属性名
             $attr = Loader::parseName($relation);
+
             // 关联数据封装
             foreach ($resultSet as $result) {
                 if (!isset($data[$result->$pk])) {
@@ -180,13 +182,17 @@ class MorphOne extends Relation
         if ($closure) {
             call_user_func_array($closure, [ & $this]);
         }
+
         $list     = $this->query->where($where)->with($subRelation)->find();
         $morphKey = $this->morphKey;
+
         // 组装模型数据
         $data = [];
+
         foreach ($list as $set) {
-            $data[$set->$morphKey][] = $set;
+            $data[$set->$morphKey] = $set;
         }
+
         return $data;
     }
 

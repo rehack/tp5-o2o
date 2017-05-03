@@ -26,7 +26,7 @@ class Lite extends Driver
     ];
 
     /**
-     * 构造函数
+     * 架构函数
      * @access public
      *
      * @param array $options
@@ -36,8 +36,9 @@ class Lite extends Driver
         if (!empty($options)) {
             $this->options = array_merge($this->options, $options);
         }
-        if (substr($this->options['path'], -1) != DS) {
-            $this->options['path'] .= DS;
+
+        if (substr($this->options['path'], -1) != DIRECTORY_SEPARATOR) {
+            $this->options['path'] .= DIRECTORY_SEPARATOR;
         }
 
     }
@@ -73,15 +74,20 @@ class Lite extends Driver
      */
     public function get($name, $default = false)
     {
+        $this->readTimes++;
+
         $filename = $this->getCacheKey($name);
+
         if (is_file($filename)) {
             // 判断是否过期
             $mtime = filemtime($filename);
+
             if ($mtime < $_SERVER['REQUEST_TIME']) {
                 // 清除已经过期的文件
                 unlink($filename);
                 return $default;
             }
+
             return include $filename;
         } else {
             return $default;
@@ -98,23 +104,31 @@ class Lite extends Driver
      */
     public function set($name, $value, $expire = null)
     {
+        $this->writeTimes++;
+
         if (is_null($expire)) {
             $expire = $this->options['expire'];
         }
+
         // 模拟永久
         if (0 === $expire) {
             $expire = 10 * 365 * 24 * 3600;
         }
+
         $filename = $this->getCacheKey($name);
+
         if ($this->tag && !is_file($filename)) {
             $first = true;
         }
+
         $ret = file_put_contents($filename, ("<?php return " . var_export($value, true) . ";"));
+
         // 通过设置修改时间实现有效期
         if ($ret) {
             isset($first) && $this->setTagItem($filename);
             touch($filename, $_SERVER['REQUEST_TIME'] + $expire);
         }
+
         return $ret;
     }
 
@@ -132,6 +146,7 @@ class Lite extends Driver
         } else {
             $value = $step;
         }
+
         return $this->set($name, $value, 0) ? $value : false;
     }
 
@@ -149,6 +164,7 @@ class Lite extends Driver
         } else {
             $value = $step;
         }
+
         return $this->set($name, $value, 0) ? $value : false;
     }
 
@@ -160,6 +176,8 @@ class Lite extends Driver
      */
     public function rm($name)
     {
+        $this->writeTimes++;
+
         return unlink($this->getCacheKey($name));
     }
 
@@ -177,9 +195,13 @@ class Lite extends Driver
             foreach ($keys as $key) {
                 unlink($key);
             }
+
             $this->rm('tag_' . md5($tag));
             return true;
         }
-        array_map("unlink", glob($this->options['path'] . ($this->options['prefix'] ? $this->options['prefix'] . DS : '') . '*.php'));
+
+        $this->writeTimes++;
+
+        array_map("unlink", glob($this->options['path'] . ($this->options['prefix'] ? $this->options['prefix'] . DIRECTORY_SEPARATOR : '') . '*.php'));
     }
 }

@@ -13,8 +13,6 @@ namespace think;
 
 class View
 {
-    // 视图实例
-    protected static $instance;
     // 模板引擎实例
     public $engine;
     // 模板变量
@@ -25,45 +23,31 @@ class View
     protected $replace = [];
 
     /**
-     * 构造函数
+     * 初始化
      * @access public
-     * @param array $engine  模板引擎参数
+     * @param mixed $engine  模板引擎参数
      * @param array $replace  字符串替换参数
+     * @return $this
      */
-    public function __construct($engine = [], $replace = [])
+    public function init($engine = [], $replace = [])
     {
         // 初始化模板引擎
-        $this->engine((array) $engine);
+        $this->engine($engine);
+
         // 基础替换字符串
-        $request = Request::instance();
-        $base    = $request->root();
-        $root    = strpos($base, '.') ? ltrim(dirname($base), DS) : $base;
-        if ('' != $root) {
-            $root = '/' . ltrim($root, '/');
-        }
+        $request     = Facade::make('request');
+        $root        = $request->rootUrl();
         $baseReplace = [
+            '__URL__'    => $request->root() . '/' . $request->module() . '/' . Loader::parseName($request->controller()),
             '__ROOT__'   => $root,
-            '__URL__'    => $base . '/' . $request->module() . '/' . Loader::parseName($request->controller()),
             '__STATIC__' => $root . '/static',
             '__CSS__'    => $root . '/static/css',
             '__JS__'     => $root . '/static/js',
         ];
-        $this->replace = array_merge($baseReplace, (array) $replace);
-    }
 
-    /**
-     * 初始化视图
-     * @access public
-     * @param array $engine  模板引擎参数
-     * @param array $replace  字符串替换参数
-     * @return object
-     */
-    public static function instance($engine = [], $replace = [])
-    {
-        if (is_null(self::$instance)) {
-            self::$instance = new self($engine, $replace);
-        }
-        return self::$instance;
+        $this->replace = array_merge($baseReplace, (array) $replace);
+
+        return $this;
     }
 
     /**
@@ -71,15 +55,17 @@ class View
      * @access public
      * @param mixed $name  变量名
      * @param mixed $value 变量值
-     * @return void
+     * @return $this
      */
-    public static function share($name, $value = '')
+    public function share($name, $value = '')
     {
         if (is_array($name)) {
             self::$var = array_merge(self::$var, $name);
         } else {
             self::$var[$name] = $value;
         }
+
+        return $this;
     }
 
     /**
@@ -96,6 +82,7 @@ class View
         } else {
             $this->data[$name] = $value;
         }
+
         return $this;
     }
 
@@ -115,10 +102,12 @@ class View
         }
 
         $class = false !== strpos($type, '\\') ? $type : '\\think\\view\\driver\\' . ucfirst($type);
+
         if (isset($options['type'])) {
             unset($options['type']);
         }
         $this->engine = new $class($options);
+
         return $this;
     }
 
@@ -127,11 +116,12 @@ class View
      * @access private
      * @param string|array  $name 参数名
      * @param mixed         $value 参数值
-     * @return void
+     * @return $this
      */
     public function config($name, $value = null)
     {
         $this->engine->config($name, $value);
+
         return $this;
     }
 
@@ -150,6 +140,11 @@ class View
         // 模板变量
         $vars = array_merge(self::$var, $this->data, $vars);
 
+        if (!isset($vars['App'])) {
+            // 应用对象模板变量
+            $vars['App'] = Facade::make('app');
+        }
+
         // 页面缓存
         ob_start();
         ob_implicit_flush(0);
@@ -160,13 +155,16 @@ class View
 
         // 获取并清空缓存
         $content = ob_get_clean();
+
         // 内容过滤标签
-        Hook::listen('view_filter', $content);
+        Facade::make('hook')->listen('view_filter', $content);
+
         // 允许用户自定义模板的字符串替换
         $replace = array_merge($this->replace, $replace);
         if (!empty($replace)) {
             $content = strtr($content, $replace);
         }
+
         return $content;
     }
 
@@ -184,6 +182,7 @@ class View
         } else {
             $this->replace[$content] = $replace;
         }
+
         return $this;
     }
 

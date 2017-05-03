@@ -19,7 +19,7 @@ use think\model\Relation;
 class HasMany extends Relation
 {
     /**
-     * 构造函数
+     * 架构函数
      * @access public
      * @param Model  $parent     上级模型对象
      * @param string $model      模型名
@@ -46,7 +46,8 @@ class HasMany extends Relation
         if ($closure) {
             call_user_func_array($closure, [ & $this->query]);
         }
-        $list   = $this->relation($subRelation)->select();
+
+        $list   = $this->query->relation($subRelation)->select();
         $parent = clone $this->parent;
 
         foreach ($list as &$model) {
@@ -69,6 +70,7 @@ class HasMany extends Relation
     {
         $localKey = $this->localKey;
         $range    = [];
+
         foreach ($resultSet as $result) {
             // 获取关联外键列表
             if (isset($result->$localKey)) {
@@ -83,19 +85,22 @@ class HasMany extends Relation
                     $range,
                 ],
             ], $relation, $subRelation, $closure);
+
             // 关联属性名
             $attr = Loader::parseName($relation);
+
             // 关联数据封装
             foreach ($resultSet as $result) {
-                if (!isset($data[$result->$localKey])) {
-                    $data[$result->$localKey] = [];
+                $pk = $result->$localKey;
+                if (!isset($data[$pk])) {
+                    $data[$pk] = [];
                 }
 
-                foreach ($data[$result->$localKey] as &$relationModel) {
+                foreach ($data[$pk] as &$relationModel) {
                     $relationModel->setParent(clone $result);
                 }
 
-                $result->setRelation($attr, $this->resultSetBuild($data[$result->$localKey]));
+                $result->setRelation($attr, $this->resultSetBuild($data[$pk]));
             }
         }
     }
@@ -114,17 +119,19 @@ class HasMany extends Relation
         $localKey = $this->localKey;
 
         if (isset($result->$localKey)) {
-            $data = $this->eagerlyOneToMany($this, [$this->foreignKey => $result->$localKey], $relation, $subRelation, $closure);
+            $pk   = $result->$localKey;
+            $data = $this->eagerlyOneToMany($this, [$this->foreignKey => $pk], $relation, $subRelation, $closure);
+
             // 关联数据封装
-            if (!isset($data[$result->$localKey])) {
-                $data[$result->$localKey] = [];
+            if (!isset($data[$pk])) {
+                $data[$pk] = [];
             }
 
-            foreach ($data[$result->$localKey] as &$relationModel) {
+            foreach ($data[$pk] as &$relationModel) {
                 $relationModel->setParent(clone $result);
             }
 
-            $result->setRelation(Loader::parseName($relation), $this->resultSetBuild($data[$result->$localKey]));
+            $result->setRelation(Loader::parseName($relation), $this->resultSetBuild($data[$pk]));
         }
     }
 
@@ -139,12 +146,15 @@ class HasMany extends Relation
     {
         $localKey = $this->localKey;
         $count    = 0;
+
         if (isset($result->$localKey)) {
             if ($closure) {
                 call_user_func_array($closure, [ & $this->query]);
             }
+
             $count = $this->query->where([$this->foreignKey => $result->$localKey])->count();
         }
+
         return $count;
     }
 
@@ -160,12 +170,15 @@ class HasMany extends Relation
             call_user_func_array($closure, [ & $this->query]);
         }
 
-        return $this->query->where([
-            $this->foreignKey => [
-                'exp',
-                '=' . $this->parent->getTable() . '.' . $this->parent->getPk(),
-            ],
-        ])->fetchSql()->count();
+        return $this->query
+            ->where([
+                $this->foreignKey => [
+                    'exp',
+                    '=' . $this->parent->getTable() . '.' . $this->parent->getPk(),
+                ],
+            ])
+            ->fetchSql()
+            ->count();
     }
 
     /**
@@ -181,17 +194,21 @@ class HasMany extends Relation
     protected function eagerlyOneToMany($model, $where, $relation, $subRelation = '', $closure = false)
     {
         $foreignKey = $this->foreignKey;
+
         // 预载入关联查询 支持嵌套预载入
         if ($closure) {
             call_user_func_array($closure, [ & $model]);
         }
+
         $list = $model->where($where)->with($subRelation)->select();
 
         // 组装模型数据
         $data = [];
+
         foreach ($list as $set) {
             $data[$set->$foreignKey][] = $set;
         }
+
         return $data;
     }
 
@@ -206,9 +223,12 @@ class HasMany extends Relation
         if ($data instanceof Model) {
             $data = $data->getData();
         }
+
         // 保存关联表数据
-        $model                   = new $this->model;
         $data[$this->foreignKey] = $this->parent->{$this->localKey};
+
+        $model = new $this->model;
+
         return $model->save($data) ? $model : false;
     }
 
@@ -221,9 +241,11 @@ class HasMany extends Relation
     public function saveAll(array $dataSet)
     {
         $result = false;
+
         foreach ($dataSet as $key => $data) {
             $result = $this->save($data);
         }
+
         return $result;
     }
 
@@ -239,7 +261,9 @@ class HasMany extends Relation
     public function has($operator = '>=', $count = 1, $id = '*', $joinType = 'INNER')
     {
         $table = $this->query->getTable();
-        return $this->parent->db()->alias('a')
+
+        return $this->parent->db()
+            ->alias('a')
             ->join($table . ' b', 'a.' . $this->localKey . '=b.' . $this->foreignKey, $joinType)
             ->group('b.' . $this->foreignKey)
             ->having('count(' . $id . ')' . $operator . $count);
@@ -256,6 +280,7 @@ class HasMany extends Relation
         $table    = $this->query->getTable();
         $model    = basename(str_replace('\\', '/', get_class($this->parent)));
         $relation = basename(str_replace('\\', '/', $this->model));
+
         if (is_array($where)) {
             foreach ($where as $key => $val) {
                 if (false === strpos($key, '.')) {
@@ -264,14 +289,16 @@ class HasMany extends Relation
                 }
             }
         }
-        return $this->parent->db()->alias($model)
+
+        return $this->parent->db()
+            ->alias($model)
             ->field($model . '.*')
             ->join($table . ' ' . $relation, $model . '.' . $this->localKey . '=' . $relation . '.' . $this->foreignKey)
             ->where($where);
     }
 
     /**
-     * 执行基础查询（进执行一次）
+     * 执行基础查询（仅执行一次）
      * @access protected
      * @return void
      */
@@ -282,6 +309,7 @@ class HasMany extends Relation
                 // 关联查询带入关联条件
                 $this->query->where($this->foreignKey, $this->parent->{$this->localKey});
             }
+
             $this->baseQuery = true;
         }
     }

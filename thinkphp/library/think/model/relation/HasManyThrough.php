@@ -25,7 +25,7 @@ class HasManyThrough extends Relation
     protected $through;
 
     /**
-     * 构造函数
+     * 架构函数
      * @access   public
      * @param Model  $parent     上级模型对象
      * @param string $model      模型名
@@ -57,7 +57,7 @@ class HasManyThrough extends Relation
             call_user_func_array($closure, [ & $this->query]);
         }
 
-        return $this->relation($subRelation)->select();
+        return $this->query->relation($subRelation)->select();
     }
 
     /**
@@ -122,7 +122,7 @@ class HasManyThrough extends Relation
     {}
 
     /**
-     * 执行基础查询（进执行一次）
+     * 执行基础查询（仅执行一次）
      * @access protected
      * @return void
      */
@@ -136,10 +136,14 @@ class HasManyThrough extends Relation
             $pk           = (new $this->model)->getPk();
             $throughKey   = $this->throughKey;
             $modelTable   = $this->parent->getTable();
-            $this->query->field($alias . '.*')->alias($alias)
+
+            $this->query
+                ->field($alias . '.*')
+                ->alias($alias)
                 ->join($throughTable, $throughTable . '.' . $pk . '=' . $alias . '.' . $throughKey)
                 ->join($modelTable, $modelTable . '.' . $this->localKey . '=' . $throughTable . '.' . $this->foreignKey)
                 ->where($throughTable . '.' . $this->foreignKey, $this->parent->{$this->localKey});
+
             $this->baseQuery = true;
         }
     }

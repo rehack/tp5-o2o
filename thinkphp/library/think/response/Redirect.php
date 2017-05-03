@@ -11,10 +11,8 @@
 
 namespace think\response;
 
-use think\Request;
+use think\Facade;
 use think\Response;
-use think\Session;
-use think\Url;
 
 class Redirect extends Response
 {
@@ -27,6 +25,7 @@ class Redirect extends Response
     public function __construct($data = '', $code = 302, array $header = [], array $options = [])
     {
         parent::__construct($data, $code, $header, $options);
+
         $this->cacheControl('no-cache,must-revalidate');
     }
 
@@ -39,6 +38,7 @@ class Redirect extends Response
     protected function output($data)
     {
         $this->header['Location'] = $this->getTargetUrl();
+
         return;
     }
 
@@ -51,13 +51,16 @@ class Redirect extends Response
      */
     public function with($name, $value = null)
     {
+        $session = Facade::make('Session');
+
         if (is_array($name)) {
             foreach ($name as $key => $val) {
-                Session::flash($key, $val);
+                $session->flash($key, $val);
             }
         } else {
-            Session::flash($name, $value);
+            $session->flash($name, $value);
         }
+
         return $this;
     }
 
@@ -67,12 +70,13 @@ class Redirect extends Response
      */
     public function getTargetUrl()
     {
-        return (strpos($this->data, '://') || 0 === strpos($this->data, '/')) ? $this->data : Url::build($this->data, $this->params);
+        return (strpos($this->data, '://') || 0 === strpos($this->data, '/')) ? $this->data : Facade::make('url')->build($this->data, $this->params);
     }
 
     public function params($params = [])
     {
         $this->params = $params;
+
         return $this;
     }
 
@@ -82,7 +86,8 @@ class Redirect extends Response
      */
     public function remember()
     {
-        Session::set('redirect_url', Request::instance()->url());
+        Facade::make('Session')->set('redirect_url', Facade::make('request')->url());
+
         return $this;
     }
 
@@ -92,10 +97,13 @@ class Redirect extends Response
      */
     public function restore()
     {
-        if (Session::has('redirect_url')) {
-            $this->data = Session::get('redirect_url');
-            Session::delete('redirect_url');
+        $session = Facade::make('Session');
+
+        if ($session->has('redirect_url')) {
+            $this->data = $session->get('redirect_url');
+            $session->delete('redirect_url');
         }
+
         return $this;
     }
 }
