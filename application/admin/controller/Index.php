@@ -1,5 +1,5 @@
 <?php
-namespace app\index\controller;
+namespace app\admin\controller;
 use think\Controller;
 class Index extends Controller
 {
@@ -8,8 +8,7 @@ class Index extends Controller
         return $this->fetch();
     }
 
-    public function hello($name = 'ThinkPHP5')
-    {
-        return 'hello,' . $name;
+    public function welcome(){
+        return 'welcome';
     }
 }
