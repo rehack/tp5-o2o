@@ -27,7 +27,35 @@ class Category extends Model{
             ->select();
     }
 
-    public function getFirstCategory(){
+    public function getFirstCategorys($parentId=0){
+        $data=[
+            'parent_id'=>$parentId,
+            'status'=>['neq',-1]
+        ];
 
+        $order=[
+            'id'=>'desc'
+        ];
+
+        $result=$this->where($data)
+            ->order($order)
+            // ->select();
+            ->paginate(1);
+
+        // echo $this->getLastSql();
+
+        return $result;
+    }
+
+
+    // 状态-获取器
+    public function getStatusAttr($value)
+    {
+        $status = [
+            -1=>'<span class="label label-danger radius">删除</span>',
+            0=>'<span class="label label-danger radius">待审</span>',
+            1=>'<span class="label label-success radius">正常</span>',
+        ];
+        return $status[$value];
     }
 }

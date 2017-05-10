@@ -3,13 +3,21 @@ namespace app\admin\controller;
 use think\Controller;
 class Category extends Controller
 {
+
+    private $obj;
+    public function _initialize(){
+        $this->obj=model('Category');
+    }
+
     public function index()
     {
-        return $this->fetch();
+        $parentId=input('get.parent_id',0,'intval');
+        $categorys=$this->obj->getFirstCategorys($parentId);
+        return $this->fetch('',['categorys'=>$categorys]);
     }
 
     public function add(){
-        $categorys=model('Category')->getNomalFirstCategory();
+        $categorys=$this->obj->getNomalFirstCategory();
         return $this->fetch('',[
             'categorys'=>$categorys,
         ]);
@@ -24,7 +32,7 @@ class Category extends Controller
                 // dump($data);
 
                 // 把数据提交给model层
-                $res=model('Category')->add($data);
+                $res=$this->obj->add($data);
                 if($res){
                     $this->success('新增成功');
                 }else{

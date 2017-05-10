@@ -1,0 +1,4 @@
+/* 分页样式 */
+.pagelist .pagination{text-align: center;}
+.pagelist .pagination li{display: inline;padding: 0 10px;}
+.pagelist .pagination .active{color: #f00;}
