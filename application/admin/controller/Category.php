@@ -9,10 +9,13 @@ class Category extends Controller
         $this->obj=model('Category');
     }
 
-    public function index()
+    public function index($id=0)
     {
-        $parentId=input('get.parent_id',0,'intval');
-        $categorys=$this->obj->getFirstCategorys($parentId);
+        if(intval($id)<0){
+            $this->error('参数不合法！');
+        }
+        // $parentId=input('get.id',0,'intval');
+        $categorys=$this->obj->getFirstCategorys($id);
         return $this->fetch('',['categorys'=>$categorys]);
     }
 
@@ -45,6 +48,20 @@ class Category extends Controller
             }
         }
 
+    }
 
+    // 编辑
+    public function edit($id=0){
+        if(intval($id)<1){
+            $this->error('参数不合法！');
+        }
+        $category=$this->obj->get($id);
+        // dump($category);die();
+
+        $categorys=$this->obj->getNomalFirstCategory();
+        return $this->fetch('',[
+            'categorys'=>$categorys,
+            'category'=>$category,
+        ]);
     }
 }

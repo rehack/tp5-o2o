@@ -40,7 +40,7 @@ class Category extends Model{
         $result=$this->where($data)
             ->order($order)
             // ->select();
-            ->paginate(1);
+            ->paginate(3);
 
         // echo $this->getLastSql();
 
