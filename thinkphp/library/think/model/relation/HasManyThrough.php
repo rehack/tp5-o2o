@@ -49,7 +49,7 @@ class HasManyThrough extends Relation
      * 延迟获取关联数据
      * @param string   $subRelation 子关联名
      * @param \Closure $closure     闭包查询条件
-     * @return false|\PDOStatement|string|\think\Collection
+     * @return \think\Collection
      */
     public function getRelation($subRelation = '', $closure = null)
     {
@@ -77,10 +77,11 @@ class HasManyThrough extends Relation
     /**
      * 根据关联条件查询当前模型
      * @access public
-     * @param mixed $where 查询条件（数组或者闭包）
+     * @param mixed     $where 查询条件（数组或者闭包）
+     * @param mixed     $fields 字段
      * @return Query
      */
-    public function hasWhere($where = [])
+    public function hasWhere($where = [], $fields = null)
     {
         throw new Exception('relation not support: hasWhere');
     }
@@ -136,9 +137,10 @@ class HasManyThrough extends Relation
             $pk           = (new $this->model)->getPk();
             $throughKey   = $this->throughKey;
             $modelTable   = $this->parent->getTable();
+            $fields       = $this->getQueryFields($alias);
 
             $this->query
-                ->field($alias . '.*')
+                ->field($fields)
                 ->alias($alias)
                 ->join($throughTable, $throughTable . '.' . $pk . '=' . $alias . '.' . $throughKey)
                 ->join($modelTable, $modelTable . '.' . $this->localKey . '=' . $throughTable . '.' . $this->foreignKey)

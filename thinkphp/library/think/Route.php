@@ -59,7 +59,7 @@ class Route
     // 当前路由标识
     protected $ruleName;
     // 别名路由
-    protected $alias;
+    protected $alias = [];
 
     public function __construct(App $app, Request $request)
     {
@@ -426,6 +426,7 @@ class Route
             if (is_numeric($key)) {
                 $key = array_shift($val);
             }
+
             if (is_array($val)) {
                 $route   = array_shift($val);
                 $option  = $val ? array_shift($val) : [];
@@ -433,6 +434,7 @@ class Route
             } else {
                 $route = $val;
             }
+
             $this->rule($key, $route, $method, $option, $pattern);
         }
     }
@@ -475,9 +477,6 @@ class Route
 
         // 还原当前分组
         $this->group = $parentGroup;
-
-        // 注册分组到当前域名
-        $this->domains[$this->domain]->addRule($group);
 
         if (!empty($option['cross_domain'])) {
             $this->setCrossDomainRule($group);
@@ -583,8 +582,8 @@ class Route
     {
         $resource = new Resource($this, $rule, $route, $option, $pattern, $this->rest);
 
-        // 注册分组到当前域名
-        $this->domains[$this->domain]->addRule($resource);
+        // 添加到当前分组
+        $this->group->addRule($resource);
 
         return $resource;
     }

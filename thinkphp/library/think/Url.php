@@ -220,7 +220,7 @@ class Url
             // 自动判断域名
             $domain = $host;
 
-            $domains = $this->app['route']->getDomain();
+            $domains = $this->app['route']->getDomains();
             if ($domains) {
                 $route_domain = array_keys($domains);
                 foreach ($route_domain as $domain_prefix) {
@@ -284,7 +284,7 @@ class Url
 
             foreach ($pattern as $key => $val) {
                 if (isset($vars[$key])) {
-                    $url = str_replace(['[:' . $key . ']', '<' . $key . '?>', ':' . $key . '', '<' . $key . '>'], $vars[$key], $url);
+                    $url = str_replace(['[:' . $key . ']', '<' . $key . '?>', ':' . $key . '', '<' . $key . '>'], urlencode($vars[$key]), $url);
                     unset($vars[$key]);
                     $result = [$url, $domain, $suffix];
                 } elseif (2 == $val) {

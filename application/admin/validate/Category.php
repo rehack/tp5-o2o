@@ -13,7 +13,7 @@ class Category extends Validate{
 
     // 场景设置
     protected $scene=[
-        'add' => ['name','parent_id'],//添加功能
+        'add' => ['name','parent_id','id'],//添加功能
         'listorder' => ['id','listorder'],//排序
     ];
 }

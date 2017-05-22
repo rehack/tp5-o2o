@@ -39,7 +39,7 @@ class HasMany extends Relation
      * 延迟获取关联数据
      * @param string   $subRelation 子关联名
      * @param \Closure $closure     闭包查询条件
-     * @return false|\PDOStatement|string|\think\Collection
+     * @return \think\Collection
      */
     public function getRelation($subRelation = '', $closure = null)
     {
@@ -272,27 +272,25 @@ class HasMany extends Relation
     /**
      * 根据关联条件查询当前模型
      * @access public
-     * @param mixed $where 查询条件（数组或者闭包）
+     * @param mixed     $where 查询条件（数组或者闭包）
+     * @param mixed     $fields 字段
      * @return Query
      */
-    public function hasWhere($where = [])
+    public function hasWhere($where = [], $fields = null)
     {
         $table    = $this->query->getTable();
         $model    = basename(str_replace('\\', '/', get_class($this->parent)));
         $relation = basename(str_replace('\\', '/', $this->model));
 
         if (is_array($where)) {
-            foreach ($where as $key => $val) {
-                if (false === strpos($key, '.')) {
-                    $where[$relation . '.' . $key] = $val;
-                    unset($where[$key]);
-                }
-            }
+            $this->getQueryWhere($where, $relation);
         }
+
+        $fields = $this->getRelationQueryFields($fields, $model);
 
         return $this->parent->db()
             ->alias($model)
-            ->field($model . '.*')
+            ->field($fields)
             ->join($table . ' ' . $relation, $model . '.' . $this->localKey . '=' . $relation . '.' . $this->foreignKey)
             ->where($where);
     }

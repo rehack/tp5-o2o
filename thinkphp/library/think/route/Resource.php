@@ -103,7 +103,7 @@ class Resource extends RuleGroup
                 $val[1] = str_replace(':id', ':' . $option['var'][$rule], $val[1]);
             }
 
-            $item = ltrim(ltrim($rule . $val[1], '/'), $this->name . '/');
+            $item = trim(substr(trim($rule . $val[1], '/'), strlen($this->name)), '/');
 
             $option['rest'] = $key;
 
@@ -111,6 +111,24 @@ class Resource extends RuleGroup
         }
 
         $this->router->setGroup($group);
+    }
+
+    /**
+     * rest方法定义和修改
+     * @access public
+     * @param string        $name 方法名称
+     * @param array|bool    $resource 资源
+     * @return $this
+     */
+    public function rest($name, $resource = [])
+    {
+        if (is_array($name)) {
+            $this->rest = $resource ? $name : array_merge($this->rest, $name);
+        } else {
+            $this->rest[$name] = $resource;
+        }
+
+        return $this;
     }
 
     /**

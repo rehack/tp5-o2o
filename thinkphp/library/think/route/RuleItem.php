@@ -37,25 +37,23 @@ class RuleItem extends Rule
      */
     public function __construct(Route $router, RuleGroup $group, $name, $route, $method = '*', $option = [], $pattern = [])
     {
-        $this->router = $router;
-        $this->group  = $group;
-        $this->route  = $route;
-        $this->method = $method;
-
-        $this->setRule($name, $option);
-
-        $this->option  = array_merge($group->getOption(), $option);
+        $this->router  = $router;
+        $this->group   = $group;
+        $this->route   = $route;
+        $this->method  = $method;
+        $this->option  = array_merge($group->getOption(), $this->option);
         $this->pattern = $pattern;
+
+        $this->setRule($name);
     }
 
     /**
      * 路由规则预处理
      * @access public
      * @param string      $rule     路由规则
-     * @param array       $option   路由参数
      * @return void
      */
-    public function setRule($rule, $option = [])
+    public function setRule($rule)
     {
         if ('$' == substr($rule, -1, 1)) {
             // 是否完整匹配

@@ -1109,6 +1109,8 @@ class Query
         if ($field) {
             $this->options['soft_delete'] = [$field, $condition ?: ['null', '']];
         }
+
+        return $this;
     }
 
     /**
@@ -1910,8 +1912,12 @@ class Query
                 $closure    = $relation;
                 $relation   = $key;
                 $with[$key] = $key;
+            } elseif (is_array($relation)) {
+                $subRelation = $relation;
+                $relation    = $key;
             } elseif (is_string($relation) && strpos($relation, '.')) {
-                $with[$key]                   = $relation;
+                $with[$key] = $relation;
+
                 list($relation, $subRelation) = explode('.', $relation, 2);
             }
 
@@ -2159,6 +2165,10 @@ class Query
 
         $resultSet = $this->connection->select($this);
 
+        if ($this->options['fetch_sql']) {
+            return $resultSet;
+        }
+
         // 数据列表读取后的处理
         if (!empty($this->model)) {
             // 生成模型对象
@@ -2217,6 +2227,10 @@ class Query
         $this->options['data'] = $data;
 
         $result = $this->connection->find($this);
+
+        if ($this->options['fetch_sql']) {
+            return $result;
+        }
 
         // 数据处理
         if (!empty($result)) {
@@ -2366,12 +2380,15 @@ class Query
     /**
      * 获取绑定的参数 并清空
      * @access public
+     * @param bool $clear
      * @return array
      */
-    public function getBind()
+    public function getBind($clear = true)
     {
-        $bind       = $this->bind;
-        $this->bind = [];
+        $bind = $this->bind;
+        if ($clear) {
+            $this->bind = [];
+        }
 
         return $bind;
     }

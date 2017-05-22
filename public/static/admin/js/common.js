@@ -21,3 +21,10 @@ function o2o_del(id,url){
     });
 }
 
+// 排序
+$('.listorder input').blur(function(){
+    alert(2)
+    var id=$(this).data('id');
+    var listorder=$(this).val();
+    console.log(id+'--'+listorder)
+})
