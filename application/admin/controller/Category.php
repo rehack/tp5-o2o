@@ -71,13 +71,26 @@ class Category extends Controller
         ]);
     }
 
+    // 更新
     public function update($data){
         $res=$this->obj->save($data,['id',intval($data['id'])]);
         if($res){
             $this->success('更新成功');
-
         }else{
             $this->error('更新失败');
+        }
+    }
+
+    // 排序
+    public function listorder(){
+        if(request()->isPost()){
+            $data=input('post.');
+            $res=$this->obj->save($data,['id',intval($data['id'])]);
+            if($res){
+                return '1';
+            }else{
+                return '2';
+            }
         }
     }
 }

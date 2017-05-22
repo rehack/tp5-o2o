@@ -21,10 +21,28 @@ function o2o_del(id,url){
     });
 }
 
-// 排序
+// 公用排序方法
 $('.listorder input').blur(function(){
-    alert(2)
     var id=$(this).data('id');
     var listorder=$(this).val();
-    console.log(id+'--'+listorder)
+    // console.log(id+'--'+listorder)
+    var postDate={
+        'id':id,
+        'listorder':listorder
+    }
+    var url=SOCPE.listorder_url;
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: postDate,
+    })
+    .done(function() {
+        console.log("success");
+    })
+    .fail(function() {
+        console.log("error");
+    });
+
 })
