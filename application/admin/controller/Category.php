@@ -87,10 +87,28 @@ class Category extends Controller
             $data=input('post.');
             $res=$this->obj->save($data,['id',intval($data['id'])]);
             if($res){
-                return '1';
+                $this->result($_SERVER['HTTP_REFERER'],1,'排序成功');
             }else{
-                return '2';
+                $this->result($_SERVER['HTTP_REFERER'],0,'排序失败');
             }
+        }
+    }
+
+
+    // 修改状态
+    public function status(){
+        $data=input('');
+        dump($data);
+        $validate = validate('Category');
+        if(!$validate->scene('status')->check($data)){
+            $this->error($validate->getError());
+        }
+
+        $res=$this->obj->save(['status'=>$data['status']],['id'=>$data['id']]);
+        if($res){
+            $this->success('状态更新成功');
+        }else{
+            $this->error('状态更新失败');
         }
     }
 }

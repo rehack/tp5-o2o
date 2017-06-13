@@ -14,7 +14,7 @@ function o2o_s_edit(title,url,w,h){
     layer_show(title,url,w,h);
 }
 /*-删除*/
-function o2o_del(id,url){
+function o2o_del(url){
 
     layer.confirm('确认要删除吗？',function(index){
         window.location.href=url;
@@ -38,8 +38,12 @@ $('.listorder input').blur(function(){
         dataType: 'json',
         data: postDate,
     })
-    .done(function() {
-        console.log("success");
+    .done(function(result) {
+        if(result.code==1){
+            location.href=result.data;//刷新页面，让排序效果生效
+        }else{
+            alert(result.msg);
+        }
     })
     .fail(function() {
         console.log("error");
