@@ -16,6 +16,7 @@ class Category extends Controller
         }
         // $parentId=input('get.id',0,'intval');
         $categorys=$this->obj->getFirstCategorys($id);
+        // dump($categorys);die;
         return $this->fetch('',['categorys'=>$categorys]);
     }
 
@@ -97,8 +98,10 @@ class Category extends Controller
 
     // 修改状态
     public function status(){
-        $data=input('');
-        dump($data);
+        $data=input('param.');
+        // dump($data);
+        $data['status']=$data['status']=='正常'?0:1;
+        // dump($data['status']);die;
         $validate = validate('Category');
         if(!$validate->scene('status')->check($data)){
             $this->error($validate->getError());

@@ -27,7 +27,7 @@
 					<td class="text-c listorder"><input type="text" size="3" data-id="{$vo.id}" name="listorder" value="{$vo.listorder}"></td>
 					<td>{$vo.create_time}</td>
 					<td class="td-status">
-						<a href="{:url('category/status',['id'=>$vo.id,'status'=>$vo.status==1?0:1])}" title="点击修改状态">{$vo.status}</a>
+						<a href="{:url('category/status',['id'=>$vo.id,'status'=>$vo.status])}" title="点击修改状态">{$vo.status}</a>
 					</td>
 					<td class="td-manage">
 						<a href="{:url('category/index',['id'=>$vo.id])}">获取子栏目</a>
