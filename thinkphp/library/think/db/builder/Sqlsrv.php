@@ -12,7 +12,6 @@
 namespace think\db\builder;
 
 use think\db\Builder;
-use think\db\Query;
 
 /**
  * Sqlsrv数据库驱动
@@ -27,41 +26,37 @@ class Sqlsrv extends Builder
     /**
      * order分析
      * @access protected
-     * @param Query     $query        查询对象
-     * @param mixed     $order
+     * @param mixed $order
+     * @param array $options
      * @return string
      */
-    protected function parseOrder(Query $query, $order)
+    protected function parseOrder($order, $options = [])
     {
         if (is_array($order)) {
             $array = [];
-
             foreach ($order as $key => $val) {
                 if (is_numeric($key)) {
                     if (false === strpos($val, '(')) {
-                        $array[] = $this->parseKey($query, $val);
+                        $array[] = $this->parseKey($val, $options);
                     } elseif ('[rand]' == $val) {
-                        $array[] = $this->parseRand($query);
+                        $array[] = $this->parseRand();
                     }
                 } else {
                     $sort    = in_array(strtolower(trim($val)), ['asc', 'desc']) ? ' ' . $val : '';
-                    $array[] = $this->parseKey($query, $key) . ' ' . $sort;
+                    $array[] = $this->parseKey($key, $options) . ' ' . $sort;
                 }
             }
-
             $order = implode(',', $array);
         }
-
         return !empty($order) ? ' ORDER BY ' . $order : ' ORDER BY rand()';
     }
 
     /**
      * 随机排序
      * @access protected
-     * @param Query     $query        查询对象
      * @return string
      */
-    protected function parseRand(Query $query)
+    protected function parseRand()
     {
         return 'rand()';
     }
@@ -69,64 +64,56 @@ class Sqlsrv extends Builder
     /**
      * 字段和表名处理
      * @access protected
-     * @param Query     $query        查询对象
-     * @param string    $key
+     * @param string $key
+     * @param array  $options
      * @return string
      */
-    protected function parseKey(Query $query, $key)
+    protected function parseKey($key, $options = [])
     {
         $key = trim($key);
-
         if (strpos($key, '.') && !preg_match('/[,\'\"\(\)\[\s]/', $key)) {
             list($table, $key) = explode('.', $key, 2);
-            $alias             = $query->getOptions('alias');
-            if (isset($alias[$table])) {
-                $table = $alias[$table];
-            } elseif ('__TABLE__' == $table) {
-                $table = $query->getTable();
+            if ('__TABLE__' == $table) {
+                $table = $this->query->getTable();
+            }
+            if (isset($options['alias'][$table])) {
+                $table = $options['alias'][$table];
             }
         }
-
         if (!is_numeric($key) && !preg_match('/[,\'\"\*\(\)\[.\s]/', $key)) {
             $key = '[' . $key . ']';
         }
-
         if (isset($table)) {
             $key = '[' . $table . '].' . $key;
         }
-
         return $key;
     }
 
     /**
      * limit
      * @access protected
-     * @param Query     $query        查询对象
-     * @param mixed     $limit
+     * @param mixed $limit
      * @return string
      */
-    protected function parseLimit(Query $query, $limit)
+    protected function parseLimit($limit)
     {
         if (empty($limit)) {
             return '';
         }
 
         $limit = explode(',', $limit);
-
         if (count($limit) > 1) {
             $limitStr = '(T1.ROW_NUMBER BETWEEN ' . $limit[0] . ' + 1 AND ' . $limit[0] . ' + ' . $limit[1] . ')';
         } else {
             $limitStr = '(T1.ROW_NUMBER BETWEEN 1 AND ' . $limit[0] . ")";
         }
-
         return 'WHERE ' . $limitStr;
     }
 
-    public function selectInsert(Query $query, $fields, $table)
+    public function selectInsert($fields, $table, $options)
     {
         $this->selectSql = $this->selectInsertSql;
-
-        return parent::selectInsert($query, $fields, $table);
+        return parent::selectInsert($fields, $table, $options);
     }
 
 }

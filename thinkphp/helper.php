@@ -13,69 +13,33 @@
 // ThinkPHP 助手函数
 //-------------------------
 
-use think\Container;
+use think\Cache;
+use think\Config;
+use think\Cookie;
 use think\Db;
+use think\Debug;
 use think\exception\HttpException;
 use think\exception\HttpResponseException;
-use think\facade\Cache;
-use think\facade\Config;
-use think\facade\Cookie;
-use think\facade\Debug;
-use think\facade\Lang;
-use think\facade\Log;
-use think\facade\Request;
-use think\facade\Session;
-use think\facade\Url;
+use think\Lang;
+use think\Loader;
+use think\Log;
+use think\Model;
+use think\Request;
 use think\Response;
+use think\Session;
+use think\Url;
+use think\View;
 
-if (!function_exists('container')) {
+if (!function_exists('load_trait')) {
     /**
-     * 获取容器对象实例
-     * @return Container
+     * 快速导入Traits PHP5.5以上无需调用
+     * @param string    $class trait库
+     * @param string    $ext 类库后缀
+     * @return boolean
      */
-    function container()
+    function load_trait($class, $ext = EXT)
     {
-        return Container::getInstance();
-    }
-}
-
-if (!function_exists('app')) {
-    /**
-     * 快速获取容器中的实例 支持依赖注入
-     * @param string    $name 类名或标识 默认获取当前应用实例
-     * @param array     $args 参数
-     * @return object
-     */
-    function app($name = 'think\App', $args = [])
-    {
-        return Container::getInstance()->make($name, $args);
-    }
-}
-
-if (!function_exists('bind')) {
-    /**
-     * 绑定一个类到容器
-     * @access public
-     * @param string  $abstract    类标识、接口
-     * @param mixed   $concrete    要绑定的类、闭包或者实例
-     * @return Container
-     */
-    function bind($abstract, $concrete = null)
-    {
-        return Container::getInstance()->bind($abstract, $concrete);
-    }
-}
-
-if (!function_exists('call')) {
-    /**
-     * 调用反射执行callable 支持依赖注入
-     * @param mixed $callable   支持闭包等callable写法
-     * @param array $args       参数
-     * @return mixed
-     */
-    function call($callable, $args = [])
-    {
-        return Container::getInstance()->invoke($callable, $args);
+        return Loader::import($class, TRAIT_PATH, $ext);
     }
 }
 
@@ -139,10 +103,6 @@ if (!function_exists('config')) {
     function config($name = '', $value = null, $range = '')
     {
         if (is_null($value) && is_string($name)) {
-            if ('.' == substr($name, -1)) {
-                return Config::pull(substr($name, 0, -1));
-            }
-
             return 0 === strpos($name, '?') ? Config::has(substr($name, 1), $range) : Config::get($name, $range);
         } else {
             return Config::set($name, $value, $range);
@@ -158,26 +118,23 @@ if (!function_exists('input')) {
      * @param string    $filter 过滤方法
      * @return mixed
      */
-    function input($key = '', $default = null, $filter = null)
+    function input($key = '', $default = null, $filter = '')
     {
         if (0 === strpos($key, '?')) {
             $key = substr($key, 1);
             $has = true;
         }
-
         if ($pos = strpos($key, '.')) {
             // 指定参数来源
-            $method = substr($key, 0, $pos);
-            if (in_array($method, ['get', 'post', 'put', 'patch', 'delete', 'param', 'request', 'session', 'cookie', 'server', 'env', 'path', 'file'])) {
-                $key = substr($key, $pos + 1);
-            } else {
+            list($method, $key) = explode('.', $key, 2);
+            if (!in_array($method, ['get', 'post', 'put', 'patch', 'delete', 'param', 'request', 'session', 'cookie', 'server', 'env', 'path', 'file'])) {
+                $key    = $method . '.' . $key;
                 $method = 'param';
             }
         } else {
             // 默认为自动判断
             $method = 'param';
         }
-
         if (isset($has)) {
             return request()->has($key, $method, $default);
         } else {
@@ -195,7 +152,7 @@ if (!function_exists('widget')) {
      */
     function widget($name, $data = [])
     {
-        return app()->action($name, $data, 'widget');
+        return Loader::action($name, $data, 'widget');
     }
 }
 
@@ -209,7 +166,7 @@ if (!function_exists('model')) {
      */
     function model($name = '', $layer = 'model', $appendSuffix = false)
     {
-        return app()->model($name, $layer, $appendSuffix);
+        return Loader::model($name, $layer, $appendSuffix);
     }
 }
 
@@ -223,7 +180,7 @@ if (!function_exists('validate')) {
      */
     function validate($name = '', $layer = 'validate', $appendSuffix = false)
     {
-        return app()->validate($name, $layer, $appendSuffix);
+        return Loader::validate($name, $layer, $appendSuffix);
     }
 }
 
@@ -235,7 +192,7 @@ if (!function_exists('db')) {
      * @param bool          $force 是否强制重新连接
      * @return \think\db\Query
      */
-    function db($name = '', $config = [], $force = true)
+    function db($name = '', $config = [], $force = false)
     {
         return Db::connect($config, $force)->name($name);
     }
@@ -251,7 +208,7 @@ if (!function_exists('controller')) {
      */
     function controller($name, $layer = 'controller', $appendSuffix = false)
     {
-        return app()->controller($name, $layer, $appendSuffix);
+        return Loader::controller($name, $layer, $appendSuffix);
     }
 }
 
@@ -266,7 +223,34 @@ if (!function_exists('action')) {
      */
     function action($url, $vars = [], $layer = 'controller', $appendSuffix = false)
     {
-        return app()->action($url, $vars, $layer, $appendSuffix);
+        return Loader::action($url, $vars, $layer, $appendSuffix);
+    }
+}
+
+if (!function_exists('import')) {
+    /**
+     * 导入所需的类库 同java的Import 本函数有缓存功能
+     * @param string    $class 类库命名空间字符串
+     * @param string    $baseUrl 起始路径
+     * @param string    $ext 导入的文件扩展名
+     * @return boolean
+     */
+    function import($class, $baseUrl = '', $ext = EXT)
+    {
+        return Loader::import($class, $baseUrl, $ext);
+    }
+}
+
+if (!function_exists('vendor')) {
+    /**
+     * 快速导入第三方框架类库 所有第三方框架的类库文件统一放到 系统的Vendor目录下面
+     * @param string    $class 类库
+     * @param string    $ext 类库后缀
+     * @return boolean
+     */
+    function vendor($class, $ext = EXT)
+    {
+        return Loader::import($class, VENDOR_PATH, $ext);
     }
 }
 
@@ -314,7 +298,7 @@ if (!function_exists('session')) {
             Session::init($name);
         } elseif (is_null($name)) {
             // 清除
-            Session::clear($value);
+            Session::clear('' === $value ? null : $value);
         } elseif ('' === $value) {
             // 判断或获取
             return 0 === strpos($name, '?') ? Session::has(substr($name, 1), $prefix) : Session::get($name, $prefix);
@@ -346,7 +330,7 @@ if (!function_exists('cookie')) {
             Cookie::clear($value);
         } elseif ('' === $value) {
             // 获取
-            return 0 === strpos($name, '?') ? Cookie::has(substr($name, 1), $option) : Cookie::get($name);
+            return 0 === strpos($name, '?') ? Cookie::has(substr($name, 1), $option) : Cookie::get($name, $option);
         } elseif (is_null($value)) {
             // 删除
             return Cookie::delete($name);
@@ -370,18 +354,25 @@ if (!function_exists('cache')) {
     {
         if (is_array($options)) {
             // 缓存操作的同时初始化
-            Cache::connect($options);
+            $cache = Cache::connect($options);
         } elseif (is_array($name)) {
             // 缓存初始化
             return Cache::connect($name);
+        } else {
+            $cache = Cache::init();
         }
 
-        if ('' === $value) {
+        if (is_null($name)) {
+            return $cache->clear($value);
+        } elseif ('' === $value) {
             // 获取缓存
-            return 0 === strpos($name, '?') ? Cache::has(substr($name, 1)) : Cache::get($name);
+            return 0 === strpos($name, '?') ? $cache->has(substr($name, 1)) : $cache->get($name);
         } elseif (is_null($value)) {
             // 删除缓存
-            return Cache::rm($name);
+            return $cache->rm($name);
+        } elseif (0 === strpos($name, '?') && '' !== $value) {
+            $expire = is_numeric($options) ? $options : null;
+            return $cache->remember(substr($name, 1), $value, $expire);
         } else {
             // 缓存数据
             if (is_array($options)) {
@@ -389,11 +380,10 @@ if (!function_exists('cache')) {
             } else {
                 $expire = is_numeric($options) ? $options : null; //默认快捷缓存设置过期时间
             }
-
             if (is_null($tag)) {
-                return Cache::set($name, $value, $expire);
+                return $cache->set($name, $value, $expire);
             } else {
-                return Cache::tag($tag)->set($name, $value, $expire);
+                return $cache->tag($tag)->set($name, $value, $expire);
             }
         }
     }
@@ -423,7 +413,7 @@ if (!function_exists('request')) {
      */
     function request()
     {
-        return app('request');
+        return Request::instance();
     }
 }
 
@@ -508,16 +498,16 @@ if (!function_exists('redirect')) {
      * @param mixed         $url 重定向地址 支持Url::build方法的地址
      * @param array|integer $params 额外参数
      * @param integer       $code 状态码
+     * @param array         $with 隐式传参
      * @return \think\response\Redirect
      */
-    function redirect($url = [], $params = [], $code = 302)
+    function redirect($url = [], $params = [], $code = 302, $with = [])
     {
         if (is_integer($params)) {
             $code   = $params;
             $params = [];
         }
-
-        return Response::create($url, 'redirect', $code)->params($params);
+        return Response::create($url, 'redirect', $code)->params($params)->with($with);
     }
 }
 
@@ -546,7 +536,6 @@ if (!function_exists('halt')) {
     function halt($var)
     {
         dump($var);
-
         throw new HttpResponseException(new Response);
     }
 }
@@ -560,86 +549,41 @@ if (!function_exists('token')) {
      */
     function token($name = '__token__', $type = 'md5')
     {
-        $token = Request::token($name, $type);
-
+        $token = Request::instance()->token($name, $type);
         return '<input type="hidden" name="' . $name . '" value="' . $token . '" />';
     }
 }
 
-if (!function_exists('parse_name')) {
+if (!function_exists('load_relation')) {
     /**
-     * 字符串命名风格转换
-     * type 0 将Java风格转换为C的风格 1 将C风格转换为Java的风格
-     * @param string  $name 字符串
-     * @param integer $type 转换类型
-     * @param bool    $ucfirst 首字母是否大写（驼峰规则）
-     * @return string
+     * 延迟预载入关联查询
+     * @param mixed $resultSet 数据集
+     * @param mixed $relation 关联
+     * @return array
      */
-    function parse_name($name, $type = 0, $ucfirst = true)
+    function load_relation($resultSet, $relation)
     {
-        if ($type) {
-            $name = preg_replace_callback('/_([a-zA-Z])/', function ($match) {
-                return strtoupper($match[1]);
-            }, $name);
+        $item = current($resultSet);
+        if ($item instanceof Model) {
+            $item->eagerlyResultSet($resultSet, $relation);
+        }
+        return $resultSet;
+    }
+}
 
-            return $ucfirst ? ucfirst($name) : lcfirst($name);
+if (!function_exists('collection')) {
+    /**
+     * 数组转换为数据集对象
+     * @param array $resultSet 数据集数组
+     * @return \think\model\Collection|\think\Collection
+     */
+    function collection($resultSet)
+    {
+        $item = current($resultSet);
+        if ($item instanceof Model) {
+            return \think\model\Collection::make($resultSet);
         } else {
-            return strtolower(trim(preg_replace("/[A-Z]/", "_\\0", $name), "_"));
+            return \think\Collection::make($resultSet);
         }
-    }
-}
-
-if (!function_exists('class_basename')) {
-    /**
-     * 获取类名(不包含命名空间)
-     *
-     * @param  string|object $class
-     * @return string
-     */
-    function class_basename($class)
-    {
-        $class = is_object($class) ? get_class($class) : $class;
-        return basename(str_replace('\\', '/', $class));
-    }
-}
-
-if (!function_exists('class_uses_recursive')) {
-    /**
-     *获取一个类里所有用到的trait，包括父类的
-     *
-     * @param $class
-     * @return array
-     */
-    function class_uses_recursive($class)
-    {
-        if (is_object($class)) {
-            $class = get_class($class);
-        }
-
-        $results = [];
-        $classes = array_merge([$class => $class], class_parents($class));
-        foreach ($classes as $class) {
-            $results += trait_uses_recursive($class);
-        }
-
-        return array_unique($results);
-    }
-}
-
-if (!function_exists('trait_uses_recursive')) {
-    /**
-     * 获取一个trait里所有引用到的trait
-     *
-     * @param  string $trait
-     * @return array
-     */
-    function trait_uses_recursive($trait)
-    {
-        $traits = class_uses($trait);
-        foreach ($traits as $trait) {
-            $traits += trait_uses_recursive($trait);
-        }
-
-        return $traits;
     }
 }

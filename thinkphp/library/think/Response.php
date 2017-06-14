@@ -11,11 +11,14 @@
 
 namespace think;
 
+use think\response\Json as JsonResponse;
+use think\response\Jsonp as JsonpResponse;
 use think\response\Redirect as RedirectResponse;
+use think\response\View as ViewResponse;
+use think\response\Xml as XmlResponse;
 
 class Response
 {
-
     // 原始数据
     protected $data;
 
@@ -36,7 +39,7 @@ class Response
     protected $content = null;
 
     /**
-     * 架构函数
+     * 构造函数
      * @access   public
      * @param mixed $data    输出数据
      * @param int   $code
@@ -46,15 +49,12 @@ class Response
     public function __construct($data = '', $code = 200, array $header = [], $options = [])
     {
         $this->data($data);
-
         if (!empty($options)) {
             $this->options = array_merge($this->options, $options);
         }
-
         $this->contentType($this->contentType, $this->charset);
-
-        $this->code   = $code;
         $this->header = array_merge($this->header, $header);
+        $this->code   = $code;
     }
 
     /**
@@ -72,12 +72,13 @@ class Response
         $type = empty($type) ? 'null' : strtolower($type);
 
         $class = false !== strpos($type, '\\') ? $type : '\\think\\response\\' . ucfirst($type);
-
         if (class_exists($class)) {
-            return new $class($data, $code, $header, $options);
+            $response = new $class($data, $code, $header, $options);
         } else {
-            return new static($data, $code, $header, $options);
+            $response = new static($data, $code, $header, $options);
         }
+
+        return $response;
     }
 
     /**
@@ -92,17 +93,17 @@ class Response
         $data = $this->getContent();
 
         // Trace调试注入
-        if (Facade::make('env')->get('app_trace', Facade::make('app')->config('app.app_trace'))) {
-            Facade::make('debug')->inject($this, $data);
+        if (Env::get('app_trace', Config::get('app_trace'))) {
+            Debug::inject($this, $data);
         }
 
         if (200 == $this->code) {
-            $cache = Facade::make('request')->getCache();
+            $cache = Request::instance()->getCache();
             if ($cache) {
                 $this->header['Cache-Control'] = 'max-age=' . $cache[1] . ',must-revalidate';
                 $this->header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
                 $this->header['Expires']       = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + $cache[1]) . ' GMT';
-                Facade::make('cache')->set($cache[0], [$data, $this->header], $cache[1]);
+                Cache::set($cache[0], [$data, $this->header], $cache[1]);
             }
         }
 
@@ -111,7 +112,11 @@ class Response
             http_response_code($this->code);
             // 发送头部信息
             foreach ($this->header as $name => $val) {
-                header($name . (!is_null($val) ? ':' . $val : ''));
+                if (is_null($val)) {
+                    header($name);
+                } else {
+                    header($name . ':' . $val);
+                }
             }
         }
 
@@ -123,11 +128,11 @@ class Response
         }
 
         // 监听response_end
-        Facade::make('hook')->listen('response_end', $this);
+        Hook::listen('response_end', $this);
 
         // 清空当次请求有效的数据
         if (!($this instanceof RedirectResponse)) {
-            Facade::make('session')->flush();
+            Session::flush();
         }
     }
 
@@ -151,7 +156,6 @@ class Response
     public function options($options = [])
     {
         $this->options = array_merge($this->options, $options);
-
         return $this;
     }
 
@@ -164,7 +168,6 @@ class Response
     public function data($data)
     {
         $this->data = $data;
-
         return $this;
     }
 
@@ -182,7 +185,6 @@ class Response
         } else {
             $this->header[$name] = $value;
         }
-
         return $this;
     }
 
@@ -214,7 +216,6 @@ class Response
     public function code($code)
     {
         $this->code = $code;
-
         return $this;
     }
 
@@ -226,7 +227,6 @@ class Response
     public function lastModified($time)
     {
         $this->header['Last-Modified'] = $time;
-
         return $this;
     }
 
@@ -238,7 +238,6 @@ class Response
     public function expires($time)
     {
         $this->header['Expires'] = $time;
-
         return $this;
     }
 
@@ -250,7 +249,6 @@ class Response
     public function eTag($eTag)
     {
         $this->header['ETag'] = $eTag;
-
         return $this;
     }
 
@@ -262,7 +260,6 @@ class Response
     public function cacheControl($cache)
     {
         $this->header['Cache-control'] = $cache;
-
         return $this;
     }
 
@@ -275,7 +272,6 @@ class Response
     public function contentType($contentType, $charset = 'utf-8')
     {
         $this->header['Content-Type'] = $contentType . '; charset=' . $charset;
-
         return $this;
     }
 
@@ -321,7 +317,6 @@ class Response
 
             $this->content = (string) $content;
         }
-
         return $this->content;
     }
 

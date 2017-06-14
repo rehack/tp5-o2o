@@ -48,7 +48,6 @@ class Redis extends SessionHandler
         if (!extension_loaded('redis')) {
             throw new Exception('not support:redis');
         }
-
         $this->handler = new \Redis;
 
         // 建立连接
@@ -75,7 +74,6 @@ class Redis extends SessionHandler
         $this->gc(ini_get('session.gc_maxlifetime'));
         $this->handler->close();
         $this->handler = null;
-
         return true;
     }
 

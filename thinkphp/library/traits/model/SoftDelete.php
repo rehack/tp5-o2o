@@ -1,12 +1,9 @@
 <?php
 
-namespace think\model\concern;
+namespace traits\model;
 
 use think\db\Query;
 
-/**
- * 数据软删除
- */
 trait SoftDelete
 {
 
@@ -18,11 +15,9 @@ trait SoftDelete
     public function trashed()
     {
         $field = $this->getDeleteTimeField();
-
-        if (!empty($this->getOrigin($field))) {
+        if (!empty($this->data[$field])) {
             return true;
         }
-
         return false;
     }
 
@@ -34,8 +29,8 @@ trait SoftDelete
     public static function withTrashed()
     {
         $model = new static();
-
-        return $model->db(false);
+        $field = $model->getDeleteTimeField(true);
+        return $model->getQuery();
     }
 
     /**
@@ -47,9 +42,7 @@ trait SoftDelete
     {
         $model = new static();
         $field = $model->getDeleteTimeField(true);
-
-        return $model
-            ->db(false)
+        return $model->getQuery()
             ->useSoftDelete($field, ['not null', '']);
     }
 
@@ -64,19 +57,16 @@ trait SoftDelete
         if (false === $this->trigger('before_delete', $this)) {
             return false;
         }
-
         $name = $this->getDeleteTimeField();
-
         if (!$force) {
             // 软删除
-            $this->data($name, $this->autoWriteTimestamp($name));
-            $result = $this->isUpdate()->save();
+            $this->data[$name] = $this->autoWriteTimestamp($name);
+            $result            = $this->isUpdate()->save();
         } else {
-            $result = $this->db(false)->delete($this->getData());
+            $result = $this->getQuery()->delete($this->data);
         }
 
         $this->trigger('after_delete', $this);
-
         return $result;
     }
 
@@ -91,7 +81,6 @@ trait SoftDelete
     {
         // 包含软删除数据
         $query = self::withTrashed();
-
         if (is_array($data) && key($data) !== 0) {
             $query->where($data);
             $data = null;
@@ -104,14 +93,12 @@ trait SoftDelete
 
         $resultSet = $query->select($data);
         $count     = 0;
-
         if ($resultSet) {
             foreach ($resultSet as $data) {
                 $result = $data->delete($force);
                 $count += $result;
             }
         }
-
         return $count;
     }
 
@@ -124,16 +111,14 @@ trait SoftDelete
     public function restore($where = [])
     {
         $name = $this->getDeleteTimeField();
-
         if (empty($where)) {
             $pk         = $this->getPk();
             $where[$pk] = $this->getData($pk);
         }
-
         // 恢复删除
-        return $this->db(false)
-            ->where($where)
+        return $this->getQuery()
             ->useSoftDelete($name, ['not null', ''])
+            ->where($where)
             ->update([$name => null]);
     }
 
@@ -146,7 +131,6 @@ trait SoftDelete
     protected function base($query)
     {
         $field = $this->getDeleteTimeField(true);
-
         $query->useSoftDelete($field);
     }
 
@@ -159,16 +143,13 @@ trait SoftDelete
     protected function getDeleteTimeField($read = false)
     {
         $field = property_exists($this, 'deleteTime') && isset($this->deleteTime) ? $this->deleteTime : 'delete_time';
-
         if (!strpos($field, '.')) {
             $field = '__TABLE__.' . $field;
         }
-
         if (!$read && strpos($field, '.')) {
             $array = explode('.', $field);
             $field = array_pop($array);
         }
-
         return $field;
     }
 }
