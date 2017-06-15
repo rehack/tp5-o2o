@@ -12,7 +12,6 @@
 namespace think\db\builder;
 
 use think\db\Builder;
-use think\db\Query;
 
 /**
  * Sqlite数据库驱动
@@ -23,14 +22,11 @@ class Sqlite extends Builder
     /**
      * limit
      * @access public
-     * @param Query     $query        查询对象
-     * @param mixed     $limit
      * @return string
      */
-    public function parseLimit(Query $query, $limit)
+    public function parseLimit($limit)
     {
         $limitStr = '';
-
         if (!empty($limit)) {
             $limit = explode(',', $limit);
             if (count($limit) > 1) {
@@ -39,17 +35,15 @@ class Sqlite extends Builder
                 $limitStr .= ' LIMIT ' . $limit[0] . ' ';
             }
         }
-
         return $limitStr;
     }
 
     /**
      * 随机排序
      * @access protected
-     * @param Query     $query        查询对象
      * @return string
      */
-    protected function parseRand(Query $query)
+    protected function parseRand()
     {
         return 'RANDOM()';
     }
@@ -57,27 +51,25 @@ class Sqlite extends Builder
     /**
      * 字段和表名处理
      * @access protected
-     * @param Query     $query        查询对象
-     * @param string    $key
+     * @param string $key
+     * @param array  $options
      * @return string
      */
-    protected function parseKey(Query $query, $key)
+    protected function parseKey($key, $options = [])
     {
         $key = trim($key);
         if (strpos($key, '.')) {
             list($table, $key) = explode('.', $key, 2);
-            $alias             = $query->getOptions('alias');
-            if (isset($alias[$table])) {
-                $table = $alias[$table];
-            } elseif ('__TABLE__' == $table) {
-                $table = $query->getTable();
+            if ('__TABLE__' == $table) {
+                $table = $this->query->getTable();
+            }
+            if (isset($options['alias'][$table])) {
+                $table = $options['alias'][$table];
             }
         }
-
         if (isset($table)) {
             $key = $table . '.' . $key;
         }
-
         return $key;
     }
 }

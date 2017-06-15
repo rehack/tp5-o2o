@@ -117,16 +117,13 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
             $parameters = [];
             $path       = str_replace('[PAGE]', $page, $this->options['path']);
         }
-
         if (count($this->options['query']) > 0) {
             $parameters = array_merge($this->options['query'], $parameters);
         }
-
         $url = $path;
         if (!empty($parameters)) {
             $url .= '?' . urldecode(http_build_query($parameters, null, '&'));
         }
-
         return $url . $this->buildFragment();
     }
 
@@ -138,7 +135,7 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
      */
     public static function getCurrentPage($varPage = 'page', $default = 1)
     {
-        $page = Facade::make('request')->request($varPage);
+        $page = Request::instance()->request($varPage);
 
         if (filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1) {
             return $page;
@@ -153,7 +150,7 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
      */
     public static function getCurrentPath()
     {
-        return Facade::make('request')->baseUrl();
+        return Request::instance()->baseUrl();
     }
 
     public function total()
@@ -161,7 +158,6 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
         if ($this->simple) {
             throw new \DomainException('not support total');
         }
-
         return $this->total;
     }
 
@@ -180,7 +176,6 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
         if ($this->simple) {
             throw new \DomainException('not support last');
         }
-
         return $this->lastPage;
     }
 
@@ -220,7 +215,6 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
     public function fragment($fragment)
     {
         $this->options['fragment'] = $fragment;
-
         return $this;
     }
 

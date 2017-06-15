@@ -41,8 +41,7 @@ class Error
         }
 
         self::getExceptionHandler()->report($e);
-
-        if (PHP_SAPI == 'cli') {
+        if (IS_CLI) {
             self::getExceptionHandler()->renderForConsole(new ConsoleOutput, $e);
         } else {
             self::getExceptionHandler()->render($e)->send();
@@ -82,7 +81,7 @@ class Error
         }
 
         // 写入日志
-        Facade::make('log')->save();
+        Log::save();
     }
 
     /**
@@ -104,17 +103,15 @@ class Error
     public static function getExceptionHandler()
     {
         static $handle;
-
         if (!$handle) {
             // 异常处理handle
-            $class = Facade::make('app')->config('exception_handle');
+            $class = Config::get('exception_handle');
             if ($class && class_exists($class) && is_subclass_of($class, "\\think\\exception\\Handle")) {
                 $handle = new $class;
             } else {
                 $handle = new Handle;
             }
         }
-
         return $handle;
     }
 }

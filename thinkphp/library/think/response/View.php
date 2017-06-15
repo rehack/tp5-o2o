@@ -11,8 +11,9 @@
 
 namespace think\response;
 
-use think\Facade;
+use think\Config;
 use think\Response;
+use think\View as ViewTemplate;
 
 class View extends Response
 {
@@ -31,8 +32,7 @@ class View extends Response
     protected function output($data)
     {
         // 渲染模板输出
-        return Facade::make('view')
-            ->init(Facade::make('app')->config('template'), Facade::make('app')->config('view_replace_str'))
+        return ViewTemplate::instance(Config::get('template'), Config::get('view_replace_str'))
             ->fetch($data, $this->vars, $this->replace);
     }
 
@@ -66,7 +66,6 @@ class View extends Response
         } else {
             $this->vars[$name] = $value;
         }
-
         return $this;
     }
 
@@ -84,7 +83,6 @@ class View extends Response
         } else {
             $this->replace[$content] = $replace;
         }
-
         return $this;
     }
 

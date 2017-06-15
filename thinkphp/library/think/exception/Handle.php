@@ -12,8 +12,11 @@
 namespace think\exception;
 
 use Exception;
+use think\App;
+use think\Config;
 use think\console\Output;
-use think\Facade;
+use think\Lang;
+use think\Log;
 use think\Response;
 
 class Handle
@@ -33,7 +36,7 @@ class Handle
     {
         if (!$this->isIgnoreReport($exception)) {
             // 收集异常数据
-            if (Facade::make('app')->isDebug()) {
+            if (App::$debug) {
                 $data = [
                     'file'    => $exception->getFile(),
                     'line'    => $exception->getLine(),
@@ -49,7 +52,7 @@ class Handle
                 $log = "[{$data['code']}]{$data['message']}";
             }
 
-            Facade::make('log')->record($log, 'error');
+            Log::record($log, 'error');
         }
     }
 
@@ -84,7 +87,7 @@ class Handle
      */
     public function renderForConsole(Output $output, Exception $e)
     {
-        if (Facade::make('app')->isDebug()) {
+        if (App::$debug) {
             $output->setVerbosity(Output::VERBOSITY_DEBUG);
         }
         $output->renderException($e);
@@ -97,8 +100,8 @@ class Handle
     protected function renderHttpException(HttpException $e)
     {
         $status   = $e->getStatusCode();
-        $template = Facade::make('app')->config('http_exception_template');
-        if (!Facade::make('app')->isDebug() && !empty($template[$status])) {
+        $template = Config::get('http_exception_template');
+        if (!App::$debug && !empty($template[$status])) {
             return Response::create($template[$status], 'view', $status)->assign(['e' => $e]);
         } else {
             return $this->convertExceptionToResponse($e);
@@ -112,7 +115,7 @@ class Handle
     protected function convertExceptionToResponse(Exception $exception)
     {
         // 收集异常数据
-        if (Facade::make('app')->isDebug()) {
+        if (App::$debug) {
             // 调试模式，获取详细的错误信息
             $data = [
                 'name'    => get_class($exception),
@@ -141,9 +144,9 @@ class Handle
                 'message' => $this->getMessage($exception),
             ];
 
-            if (!Facade::make('app')->config('show_error_msg')) {
+            if (!Config::get('show_error_msg')) {
                 // 不显示详细错误信息
-                $data['message'] = Facade::make('app')->config('error_message');
+                $data['message'] = Config::get('error_message');
             }
         }
 
@@ -156,10 +159,10 @@ class Handle
 
         ob_start();
         extract($data);
-        include Facade::make('app')->config('exception_tmpl');
+        include Config::get('exception_tmpl');
         // 获取并清空缓存
         $content  = ob_get_clean();
-        $response = Response::create($content, 'html');
+        $response = new Response($content, 'html');
 
         if ($exception instanceof HttpException) {
             $statusCode = $exception->getStatusCode();
@@ -197,18 +200,18 @@ class Handle
     protected function getMessage(Exception $exception)
     {
         $message = $exception->getMessage();
-        if (PHP_SAPI == 'cli') {
+        if (IS_CLI) {
             return $message;
         }
-        $lang = Facade::make('lang');
+
         if (strpos($message, ':')) {
             $name    = strstr($message, ':', true);
-            $message = $lang->has($name) ? $lang->get($name) . strstr($message, ':') : $message;
+            $message = Lang::has($name) ? Lang::get($name) . strstr($message, ':') : $message;
         } elseif (strpos($message, ',')) {
             $name    = strstr($message, ',', true);
-            $message = $lang->has($name) ? $lang->get($name) . ':' . substr(strstr($message, ','), 1) : $message;
-        } elseif ($lang->has($message)) {
-            $message = $lang->get($message);
+            $message = Lang::has($name) ? Lang::get($name) . ':' . substr(strstr($message, ','), 1) : $message;
+        } elseif (Lang::has($message)) {
+            $message = Lang::get($message);
         }
         return $message;
     }
@@ -258,7 +261,6 @@ class Handle
      */
     private static function getConst()
     {
-        $const = get_defined_constants(true);
-        return isset($const['user']) ? $const['user'] : [];
+        return get_defined_constants(true)['user'];
     }
 }

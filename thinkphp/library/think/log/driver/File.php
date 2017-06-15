@@ -11,7 +11,7 @@
 
 namespace think\log\driver;
 
-use think\Facade;
+use think\App;
 
 /**
  * 本地化调试输出到文件
@@ -21,7 +21,7 @@ class File
     protected $config = [
         'time_format' => ' c ',
         'file_size'   => 2097152,
-        'path'        => '',
+        'path'        => LOG_PATH,
         'apart_level' => [],
     ];
 
@@ -33,10 +33,6 @@ class File
         if (is_array($config)) {
             $this->config = array_merge($this->config, $config);
         }
-
-        if (empty($this->config['path'])) {
-            $this->config['path'] = Facade::make('app')->getRuntimePath() . 'log/';
-        }
     }
 
     /**
@@ -47,8 +43,8 @@ class File
      */
     public function save(array $log = [])
     {
-        $cli         = PHP_SAPI == 'cli' ? '_cli' : '';
-        $destination = $this->config['path'] . date('Ym') . '/' . date('d') . $cli . '.log';
+        $cli         = IS_CLI ? '_cli' : '';
+        $destination = $this->config['path'] . date('Ym') . DS . date('d') . $cli . '.log';
 
         $path = dirname($destination);
         !is_dir($path) && mkdir($path, 0755, true);
@@ -62,53 +58,46 @@ class File
                 }
                 $level .= '[ ' . $type . ' ] ' . $msg . "\r\n";
             }
-
             if (in_array($type, $this->config['apart_level'])) {
                 // 独立记录的日志级别
-                $filename = $path . '/' . date('d') . '_' . $type . $cli . '.log';
-
+                $filename = $path . DS . date('d') . '_' . $type . $cli . '.log';
                 $this->write($level, $filename, true);
             } else {
                 $info .= $level;
             }
         }
-
         if ($info) {
             return $this->write($info, $destination);
         }
-
         return true;
     }
 
-    /**
-     * 日志写入
-     * @access public
-     * @param array     $message 日志信息
-     * @param string    $destination 日志文件
-     * @param bool      $apart 是否独立文件写入
-     * @return bool
-     */
     protected function write($message, $destination, $apart = false)
     {
-        // 检测日志文件大小，超过配置大小则备份日志文件重新生成
+        //检测日志文件大小，超过配置大小则备份日志文件重新生成
         if (is_file($destination) && floor($this->config['file_size']) <= filesize($destination)) {
-            rename($destination, dirname($destination) . '/' . time() . '-' . basename($destination));
+            rename($destination, dirname($destination) . DS . time() . '-' . basename($destination));
             $this->writed[$destination] = false;
         }
 
-        if (empty($this->writed[$destination]) && PHP_SAPI != 'cli') {
-            if (Facade::make('app')->isDebug() && !$apart) {
+        if (empty($this->writed[$destination]) && !IS_CLI) {
+            if (App::$debug && !$apart) {
                 // 获取基本信息
-                $current_uri = $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-                $runtime     = round(microtime(true) - Facade::make('app')->getBeginTime(), 10);
-                $reqs        = $runtime > 0 ? number_format(1 / $runtime, 2) : '∞';
-                $time_str    = ' [运行时间：' . number_format($runtime, 6) . 's][吞吐率：' . $reqs . 'req/s]';
-                $memory_use  = number_format((memory_get_usage() - Facade::make('app')->getBeginMem()) / 1024, 2);
-                $memory_str  = ' [内存消耗：' . $memory_use . 'kb]';
-                $file_load   = ' [文件加载：' . count(get_included_files()) . ']';
-                $message     = '[ info ] ' . $current_uri . $time_str . $memory_str . $file_load . "\r\n" . $message;
-            }
+                if (isset($_SERVER['HTTP_HOST'])) {
+                    $current_uri = $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+                } else {
+                    $current_uri = "cmd:" . implode(' ', $_SERVER['argv']);
+                }
 
+                $runtime    = round(microtime(true) - THINK_START_TIME, 10);
+                $reqs       = $runtime > 0 ? number_format(1 / $runtime, 2) : '∞';
+                $time_str   = ' [运行时间：' . number_format($runtime, 6) . 's][吞吐率：' . $reqs . 'req/s]';
+                $memory_use = number_format((memory_get_usage() - THINK_START_MEM) / 1024, 2);
+                $memory_str = ' [内存消耗：' . $memory_use . 'kb]';
+                $file_load  = ' [文件加载：' . count(get_included_files()) . ']';
+
+                $message = '[ info ] ' . $current_uri . $time_str . $memory_str . $file_load . "\r\n" . $message;
+            }
             $now     = date($this->config['time_format']);
             $server  = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : '0.0.0.0';
             $remote  = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
@@ -119,7 +108,7 @@ class File
             $this->writed[$destination] = true;
         }
 
-        if (PHP_SAPI == 'cli') {
+        if (IS_CLI) {
             $now     = date($this->config['time_format']);
             $message = "[{$now}]" . $message;
         }

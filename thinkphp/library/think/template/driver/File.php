@@ -25,11 +25,9 @@ class File
     {
         // 检测模板目录
         $dir = dirname($cacheFile);
-
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
-
         // 生成模板缓存文件
         if (false === file_put_contents($cacheFile, $content)) {
             throw new Exception('cache write error:' . $cacheFile, 11602);
@@ -48,7 +46,6 @@ class File
             // 模板阵列变量分解成为独立变量
             extract($vars, EXTR_OVERWRITE);
         }
-
         //载入模版缓存文件
         include $cacheFile;
     }
@@ -65,12 +62,10 @@ class File
         if (!file_exists($cacheFile)) {
             return false;
         }
-
         if (0 != $cacheTime && $_SERVER['REQUEST_TIME'] > filemtime($cacheFile) + $cacheTime) {
             // 缓存是否在有效期
             return false;
         }
-
         return true;
     }
 }

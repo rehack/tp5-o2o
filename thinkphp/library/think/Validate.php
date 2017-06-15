@@ -102,7 +102,7 @@ class Validate
     protected $batch = false;
 
     /**
-     * 架构函数
+     * 构造函数
      * @access public
      * @param array $rules 验证规则
      * @param array $message 验证提示信息
@@ -128,7 +128,6 @@ class Validate
         if (is_null(self::$instance)) {
             self::$instance = new self($rules, $message, $field);
         }
-
         return self::$instance;
     }
 
@@ -146,12 +145,11 @@ class Validate
         } else {
             $this->rule[$name] = $rule;
         }
-
         return $this;
     }
 
     /**
-     * 注册扩展验证（类型）规则
+     * 注册验证（类型）规则
      * @access public
      * @param string    $type  验证规则类型
      * @param mixed     $callback callback方法(或闭包)
@@ -167,7 +165,7 @@ class Validate
     }
 
     /**
-     * 设置验证规则的默认提示信息
+     * 获取验证规则的默认提示信息
      * @access protected
      * @param string|array  $type  验证规则类型名称或者数组
      * @param string        $msg  验证提示信息
@@ -196,7 +194,6 @@ class Validate
         } else {
             $this->message[$name] = $message;
         }
-
         return $this;
     }
 
@@ -218,7 +215,6 @@ class Validate
             // 设置验证场景
             $this->scene[$name] = $fields;
         }
-
         return $this;
     }
 
@@ -242,7 +238,6 @@ class Validate
     public function batch($batch = true)
     {
         $this->batch = $batch;
-
         return $this;
     }
 
@@ -341,7 +336,6 @@ class Validate
                 }
             }
         }
-
         return !empty($this->error) ? false : true;
     }
 
@@ -362,7 +356,6 @@ class Validate
         if (is_string($rules)) {
             $rules = explode('|', $rules);
         }
-
         $i = 0;
         foreach ($rules as $key => $rule) {
             if ($rule instanceof \Closure) {
@@ -421,7 +414,6 @@ class Validate
             }
             $i++;
         }
-
         return $result;
     }
 
@@ -443,7 +435,6 @@ class Validate
                 $rule = $field . '_confirm';
             }
         }
-
         return $this->getDataValue($data, $rule) === $value;
     }
 
@@ -470,7 +461,8 @@ class Validate
      */
     protected function egt($value, $rule, $data)
     {
-        return $value >= $this->getDataValue($data, $rule);
+        $val = $this->getDataValue($data, $rule);
+        return !is_null($val) && $value >= $val;
     }
 
     /**
@@ -483,7 +475,8 @@ class Validate
      */
     protected function gt($value, $rule, $data)
     {
-        return $value > $this->getDataValue($data, $rule);
+        $val = $this->getDataValue($data, $rule);
+        return !is_null($val) && $value > $val;
     }
 
     /**
@@ -496,7 +489,8 @@ class Validate
      */
     protected function elt($value, $rule, $data)
     {
-        return $value <= $this->getDataValue($data, $rule);
+        $val = $this->getDataValue($data, $rule);
+        return !is_null($val) && $value <= $val;
     }
 
     /**
@@ -509,7 +503,8 @@ class Validate
      */
     protected function lt($value, $rule, $data)
     {
-        return $value < $this->getDataValue($data, $rule);
+        $val = $this->getDataValue($data, $rule);
+        return !is_null($val) && $value < $val;
     }
 
     /**
@@ -628,7 +623,6 @@ class Validate
                     $result = $this->regex($value, $rule);
                 }
         }
-
         return $result;
     }
 
@@ -655,7 +649,6 @@ class Validate
         if (!in_array($rule, ['A', 'MX', 'NS', 'SOA', 'PTR', 'CNAME', 'AAAA', 'A6', 'SRV', 'NAPTR', 'TXT', 'ANY'])) {
             $rule = 'MX';
         }
-
         return checkdnsrr($value, $rule);
     }
 
@@ -671,7 +664,6 @@ class Validate
         if (!in_array($rule, ['ipv4', 'ipv6'])) {
             $rule = 'ipv4';
         }
-
         return $this->filter($value, [FILTER_VALIDATE_IP, 'ipv6' == $rule ? FILTER_FLAG_IPV6 : FILTER_FLAG_IPV4]);
     }
 
@@ -687,11 +679,9 @@ class Validate
         if (!($file instanceof File)) {
             return false;
         }
-
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
-
         if (is_array($file)) {
             foreach ($file as $item) {
                 if (!$item->checkExt($rule)) {
@@ -716,11 +706,9 @@ class Validate
         if (!($file instanceof File)) {
             return false;
         }
-
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
-
         if (is_array($file)) {
             foreach ($file as $item) {
                 if (!$item->checkMime($rule)) {
@@ -745,7 +733,6 @@ class Validate
         if (!($file instanceof File)) {
             return false;
         }
-
         if (is_array($file)) {
             foreach ($file as $item) {
                 if (!$item->checkSize($rule)) {
@@ -770,26 +757,20 @@ class Validate
         if (!($file instanceof File)) {
             return false;
         }
-
         if ($rule) {
-            $rule = explode(',', $rule);
-
+            $rule                        = explode(',', $rule);
             list($width, $height, $type) = getimagesize($file->getRealPath());
-
             if (isset($rule[2])) {
                 $imageType = strtolower($rule[2]);
-
                 if ('jpeg' == $imageType) {
                     $imageType = 'jpg';
                 }
-
                 if (image_type_to_extension($type, false) != $imageType) {
                     return false;
                 }
             }
 
             list($w, $h) = $rule;
-
             return $w == $width && $h == $height;
         } else {
             return in_array($this->getImageType($file->getRealPath()), [1, 2, 3, 6]);
@@ -805,7 +786,7 @@ class Validate
      */
     protected function method($value, $rule)
     {
-        $method = Facade::make('request')->method();
+        $method = Request::instance()->method();
         return strtoupper($rule) == $method;
     }
 
@@ -836,18 +817,16 @@ class Validate
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
-
         if (false !== strpos($rule[0], '\\')) {
             // 指定模型类
             $db = new $rule[0];
         } else {
             try {
-                $db = Facade::make('app')->model($rule[0]);
+                $db = Loader::model($rule[0]);
             } catch (ClassNotFoundException $e) {
                 $db = Db::name($rule[0]);
             }
         }
-
         $key = isset($rule[1]) ? $rule[1] : $field;
 
         if (strpos($key, '^')) {
@@ -863,7 +842,6 @@ class Validate
         }
 
         $pk = strval(isset($rule[3]) ? $rule[3] : $db->getPk());
-
         if (isset($rule[2])) {
             $map[$pk] = ['neq', $rule[2]];
         } elseif (isset($data[$pk])) {
@@ -906,7 +884,6 @@ class Validate
         } else {
             $param = null;
         }
-
         return false !== filter_var($value, is_int($rule) ? $rule : filter_id($rule), $param);
     }
 
@@ -921,7 +898,6 @@ class Validate
     protected function requireIf($value, $rule, $data)
     {
         list($field, $val) = explode(',', $rule);
-
         if ($this->getDataValue($data, $field) == $val) {
             return !empty($value);
         } else {
@@ -940,7 +916,6 @@ class Validate
     protected function requireCallback($value, $rule, $data)
     {
         $result = call_user_func_array($rule, [$value, $data]);
-
         if ($result) {
             return !empty($value);
         } else {
@@ -959,7 +934,6 @@ class Validate
     protected function requireWith($value, $rule, $data)
     {
         $val = $this->getDataValue($data, $rule);
-
         if (!empty($val)) {
             return !empty($value);
         } else {
@@ -1004,7 +978,6 @@ class Validate
             $rule = explode(',', $rule);
         }
         list($min, $max) = $rule;
-
         return $value >= $min && $value <= $max;
     }
 
@@ -1021,7 +994,6 @@ class Validate
             $rule = explode(',', $rule);
         }
         list($min, $max) = $rule;
-
         return $value < $min || $value > $max;
     }
 
@@ -1068,7 +1040,6 @@ class Validate
         } else {
             $length = mb_strlen((string) $value);
         }
-
         return $length <= $rule;
     }
 
@@ -1088,7 +1059,6 @@ class Validate
         } else {
             $length = mb_strlen((string) $value);
         }
-
         return $length >= $rule;
     }
 
@@ -1128,9 +1098,7 @@ class Validate
         if (is_string($rule)) {
             $rule = explode(',', $rule);
         }
-
         list($start, $end) = $rule;
-
         if (!is_numeric($start)) {
             $start = strtotime($start);
         }
@@ -1138,7 +1106,6 @@ class Validate
         if (!is_numeric($end)) {
             $end = strtotime($end);
         }
-
         return $_SERVER['REQUEST_TIME'] >= $start && $_SERVER['REQUEST_TIME'] <= $end;
     }
 
@@ -1178,12 +1145,10 @@ class Validate
         if (isset($this->regex[$rule])) {
             $rule = $this->regex[$rule];
         }
-
         if (0 !== strpos($rule, '/') && !preg_match('/\/[imsU]{0,4}$/', $rule)) {
             // 不是正则表达式则两端补上/
             $rule = '/^' . $rule . '$/';
         }
-
         return 1 === preg_match($rule, (string) $value);
     }
 
@@ -1197,24 +1162,20 @@ class Validate
      */
     protected function token($value, $rule, $data)
     {
-        $rule    = !empty($rule) ? $rule : '__token__';
-        $session = Facade::make('session');
-
-        if (!isset($data[$rule]) || !$session->has($rule)) {
+        $rule = !empty($rule) ? $rule : '__token__';
+        if (!isset($data[$rule]) || !Session::has($rule)) {
             // 令牌数据无效
             return false;
         }
 
         // 令牌验证
-        if (isset($data[$rule]) && $session->get($rule) === $data[$rule]) {
+        if (isset($data[$rule]) && Session::get($rule) === $data[$rule]) {
             // 防止重复提交
-            $session->delete($rule); // 验证完成销毁session
+            Session::delete($rule); // 验证完成销毁session
             return true;
         }
-
         // 开启TOKEN重置
-        $session->delete($rule);
-
+        Session::delete($rule);
         return false;
     }
 
@@ -1227,8 +1188,8 @@ class Validate
     /**
      * 获取数据值
      * @access protected
-     * @param array     $data  数据
-     * @param string    $key  数据标识 支持二维
+     * @param array $data 数据
+     * @param string $key 数据标识 支持二维
      * @return mixed
      */
     protected function getDataValue($data, $key)
@@ -1242,7 +1203,6 @@ class Validate
         } else {
             $value = isset($data[$key]) ? $data[$key] : null;
         }
-
         return $value;
     }
 
@@ -1270,7 +1230,7 @@ class Validate
         }
 
         if (is_string($msg) && 0 === strpos($msg, '{%')) {
-            $msg = Facade::make('lang')->get(substr($msg, 2, -1));
+            $msg = Lang::get(substr($msg, 2, -1));
         }
 
         if (is_string($msg) && is_scalar($rule) && false !== strpos($msg, ':')) {
@@ -1285,7 +1245,6 @@ class Validate
                 [$title, (string) $rule, $array[0], $array[1], $array[2]],
                 $msg);
         }
-
         return $msg;
     }
 
@@ -1311,14 +1270,12 @@ class Validate
         } else {
             $scene = [];
         }
-
         return $scene;
     }
 
     public static function __callStatic($method, $params)
     {
         $class = self::make();
-
         if (method_exists($class, $method)) {
             return call_user_func_array([$class, $method], $params);
         } else {

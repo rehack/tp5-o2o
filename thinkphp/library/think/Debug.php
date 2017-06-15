@@ -12,22 +12,14 @@
 namespace think;
 
 use think\exception\ClassNotFoundException;
-use think\model\Collection;
 use think\response\Redirect;
 
 class Debug
 {
     // 区间时间信息
-    protected $info = [];
+    protected static $info = [];
     // 区间内存信息
-    protected $mem = [];
-
-    protected $app;
-
-    public function __construct(App $app)
-    {
-        $this->app = $app;
-    }
+    protected static $mem = [];
 
     /**
      * 记录时间（微秒）和内存使用情况
@@ -35,14 +27,13 @@ class Debug
      * @param mixed     $value 标记值 留空则取当前 time 表示仅记录时间 否则同时记录时间和内存
      * @return mixed
      */
-    public function remark($name, $value = '')
+    public static function remark($name, $value = '')
     {
         // 记录时间和内存使用
-        $this->info[$name] = is_float($value) ? $value : microtime(true);
-
+        self::$info[$name] = is_float($value) ? $value : microtime(true);
         if ('time' != $value) {
-            $this->mem['mem'][$name]  = is_float($value) ? $value : memory_get_usage();
-            $this->mem['peak'][$name] = memory_get_peak_usage();
+            self::$mem['mem'][$name]  = is_float($value) ? $value : memory_get_usage();
+            self::$mem['peak'][$name] = memory_get_peak_usage();
         }
     }
 
@@ -53,13 +44,12 @@ class Debug
      * @param integer|string    $dec 小数位
      * @return integer
      */
-    public function getRangeTime($start, $end, $dec = 6)
+    public static function getRangeTime($start, $end, $dec = 6)
     {
-        if (!isset($this->info[$end])) {
-            $this->info[$end] = microtime(true);
+        if (!isset(self::$info[$end])) {
+            self::$info[$end] = microtime(true);
         }
-
-        return number_format(($this->info[$end] - $this->info[$start]), $dec);
+        return number_format((self::$info[$end] - self::$info[$start]), $dec);
     }
 
     /**
@@ -67,18 +57,18 @@ class Debug
      * @param integer|string $dec 小数位
      * @return integer
      */
-    public function getUseTime($dec = 6)
+    public static function getUseTime($dec = 6)
     {
-        return number_format((microtime(true) - $this->app->getBeginTime()), $dec);
+        return number_format((microtime(true) - THINK_START_TIME), $dec);
     }
 
     /**
      * 获取当前访问的吞吐率情况
      * @return string
      */
-    public function getThroughputRate()
+    public static function getThroughputRate()
     {
-        return number_format(1 / $this->getUseTime(), 2) . 'req/s';
+        return number_format(1 / self::getUseTime(), 2) . 'req/s';
     }
 
     /**
@@ -88,21 +78,18 @@ class Debug
      * @param integer|string    $dec 小数位
      * @return string
      */
-    public function getRangeMem($start, $end, $dec = 2)
+    public static function getRangeMem($start, $end, $dec = 2)
     {
-        if (!isset($this->mem['mem'][$end])) {
-            $this->mem['mem'][$end] = memory_get_usage();
+        if (!isset(self::$mem['mem'][$end])) {
+            self::$mem['mem'][$end] = memory_get_usage();
         }
-
-        $size = $this->mem['mem'][$end] - $this->mem['mem'][$start];
+        $size = self::$mem['mem'][$end] - self::$mem['mem'][$start];
         $a    = ['B', 'KB', 'MB', 'GB', 'TB'];
         $pos  = 0;
-
         while ($size >= 1024) {
             $size /= 1024;
             $pos++;
         }
-
         return round($size, $dec) . " " . $a[$pos];
     }
 
@@ -111,17 +98,15 @@ class Debug
      * @param integer|string $dec 小数位
      * @return string
      */
-    public function getUseMem($dec = 2)
+    public static function getUseMem($dec = 2)
     {
-        $size = memory_get_usage() - $this->app->getBeginMem();
+        $size = memory_get_usage() - THINK_START_MEM;
         $a    = ['B', 'KB', 'MB', 'GB', 'TB'];
         $pos  = 0;
-
         while ($size >= 1024) {
             $size /= 1024;
             $pos++;
         }
-
         return round($size, $dec) . " " . $a[$pos];
     }
 
@@ -132,21 +117,18 @@ class Debug
      * @param integer|string    $dec 小数位
      * @return mixed
      */
-    public function getMemPeak($start, $end, $dec = 2)
+    public static function getMemPeak($start, $end, $dec = 2)
     {
-        if (!isset($this->mem['peak'][$end])) {
-            $this->mem['peak'][$end] = memory_get_peak_usage();
+        if (!isset(self::$mem['peak'][$end])) {
+            self::$mem['peak'][$end] = memory_get_peak_usage();
         }
-
-        $size = $this->mem['peak'][$end] - $this->mem['peak'][$start];
+        $size = self::$mem['peak'][$end] - self::$mem['peak'][$start];
         $a    = ['B', 'KB', 'MB', 'GB', 'TB'];
         $pos  = 0;
-
         while ($size >= 1024) {
             $size /= 1024;
             $pos++;
         }
-
         return round($size, $dec) . " " . $a[$pos];
     }
 
@@ -155,19 +137,16 @@ class Debug
      * @param bool  $detail 是否显示详细
      * @return integer|array
      */
-    public function getFile($detail = false)
+    public static function getFile($detail = false)
     {
         if ($detail) {
             $files = get_included_files();
             $info  = [];
-
             foreach ($files as $key => $file) {
                 $info[] = $file . ' ( ' . number_format(filesize($file) / 1024, 2) . ' KB )';
             }
-
             return $info;
         }
-
         return count(get_included_files());
     }
 
@@ -179,20 +158,14 @@ class Debug
      * @param integer       $flags htmlspecialchars flags
      * @return void|string
      */
-    public function dump($var, $echo = true, $label = null, $flags = ENT_SUBSTITUTE)
+    public static function dump($var, $echo = true, $label = null, $flags = ENT_SUBSTITUTE)
     {
         $label = (null === $label) ? '' : rtrim($label) . ':';
-        if ($var instanceof Model || $var instanceof Collection) {
-            $var = $var->toArray();
-        }
-
         ob_start();
         var_dump($var);
-
         $output = ob_get_clean();
         $output = preg_replace('/\]\=\>\n(\s+)/m', '] => ', $output);
-
-        if (PHP_SAPI == 'cli') {
+        if (IS_CLI) {
             $output = PHP_EOL . $label . $output . PHP_EOL;
         } else {
             if (!extension_loaded('xdebug')) {
@@ -208,13 +181,13 @@ class Debug
         }
     }
 
-    public function inject(Response $response, &$content)
+    public static function inject(Response $response, &$content)
     {
-        $config = $this->app['config']->pull('trace');
-        $type   = isset($config['type']) ? $config['type'] : 'Html';
-        $class  = false !== strpos($type, '\\') ? $type : '\\think\\debug\\' . ucwords($type);
+        $config  = Config::get('trace');
+        $type    = isset($config['type']) ? $config['type'] : 'Html';
+        $request = Request::instance();
+        $class   = false !== strpos($type, '\\') ? $type : '\\think\\debug\\' . ucwords($type);
         unset($config['type']);
-
         if (class_exists($class)) {
             $trace = new $class($config);
         } else {
@@ -224,7 +197,7 @@ class Debug
         if ($response instanceof Redirect) {
             //TODO 记录
         } else {
-            $output = $trace->output($response, $this->app['log']->getLog());
+            $output = $trace->output($response, Log::getLog());
             if (is_string($output)) {
                 // trace调试信息注入
                 $pos = strripos($content, '</body>');

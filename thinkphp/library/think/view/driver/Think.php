@@ -11,9 +11,11 @@
 
 namespace think\view\driver;
 
+use think\App;
 use think\exception\TemplateNotFoundException;
-use think\Facade;
 use think\Loader;
+use think\Log;
+use think\Request;
 use think\Template;
 
 class Think
@@ -29,16 +31,16 @@ class Think
         // 模板文件后缀
         'view_suffix' => 'html',
         // 模板文件名分隔符
-        'view_depr'   => DIRECTORY_SEPARATOR,
+        'view_depr'   => DS,
         // 是否开启模板编译缓存,设为false则每次都会重新编译
         'tpl_cache'   => true,
     ];
 
     public function __construct($config = [])
     {
-        $this->config = array_merge($this->config, (array) $config);
+        $this->config = array_merge($this->config, $config);
         if (empty($this->config['view_path'])) {
-            $this->config['view_path'] = Facade::make('app')->getModulePath() . 'view' . DIRECTORY_SEPARATOR;
+            $this->config['view_path'] = App::$modulePath . 'view' . DS;
         }
 
         $this->template = new Template($this->config);
@@ -56,7 +58,6 @@ class Think
             // 获取模板文件名
             $template = $this->parseTemplate($template);
         }
-
         return is_file($template);
     }
 
@@ -74,16 +75,12 @@ class Think
             // 获取模板文件名
             $template = $this->parseTemplate($template);
         }
-
         // 模板不存在 抛出异常
         if (!is_file($template)) {
             throw new TemplateNotFoundException('template not exists:' . $template, $template);
         }
-
         // 记录视图信息
-        Facade::make('app')
-            ->log('[ VIEW ] ' . $template . ' [ ' . var_export(array_keys($data), true) . ' ]');
-
+        App::$debug && Log::record('[ VIEW ] ' . $template . ' [ ' . var_export(array_keys($data), true) . ' ]', 'info');
         $this->template->fetch($template, $data, $config);
     }
 
@@ -109,39 +106,35 @@ class Think
     private function parseTemplate($template)
     {
         // 分析模板文件规则
-        $request = Facade::make('request');
-
+        $request = Request::instance();
         // 获取视图根目录
         if (strpos($template, '@')) {
             // 跨模块调用
             list($module, $template) = explode('@', $template);
         }
-
         if ($this->config['view_base']) {
             // 基础视图目录
             $module = isset($module) ? $module : $request->module();
-            $path   = $this->config['view_base'] . ($module ? $module . DIRECTORY_SEPARATOR : '');
+            $path   = $this->config['view_base'] . ($module ? $module . DS : '');
         } else {
-            $path = isset($module) ? Facade::make('app')->getAppPath() . $module . DIRECTORY_SEPARATOR . 'view' . DIRECTORY_SEPARATOR : $this->config['view_path'];
+            $path = isset($module) ? APP_PATH . $module . DS . 'view' . DS : $this->config['view_path'];
         }
 
         $depr = $this->config['view_depr'];
-
         if (0 !== strpos($template, '/')) {
             $template   = str_replace(['/', ':'], $depr, $template);
             $controller = Loader::parseName($request->controller());
             if ($controller) {
                 if ('' == $template) {
                     // 如果模板文件名为空 按照默认规则定位
-                    $template = str_replace('.', DIRECTORY_SEPARATOR, $controller) . $depr . $request->action();
+                    $template = str_replace('.', DS, $controller) . $depr . $request->action();
                 } elseif (false === strpos($template, $depr)) {
-                    $template = str_replace('.', DIRECTORY_SEPARATOR, $controller) . $depr . $template;
+                    $template = str_replace('.', DS, $controller) . $depr . $template;
                 }
             }
         } else {
             $template = str_replace(['/', ':'], $depr, substr($template, 1));
         }
-
         return $path . ltrim($template, '/') . '.' . ltrim($this->config['view_suffix'], '.');
     }
 
