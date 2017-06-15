@@ -56,21 +56,31 @@ $(".cityId").change(function(){
     city_id=$(this).val();
     // 发送请求
     url=SCOPE.city_url;
-    alert(url)
+    // alert(url)
+    postData={'id':city_id};
     $.ajax({
         url: url,
         type: 'POST',
         dataType: 'json',
-        data: {param1: 'value1'},
+        data: postData,
     })
-    .done(function() {
-        console.log("success");
+    .done(function(result) {
+        if(result.status==1){
+            // 将数据填充到html
+            data=result.data;
+            html_temp='';
+
+            $(data).each(function(i){
+                html_temp+=`<option value="${this.id}">${this.name}</option>`;
+            });
+            $('.se_city_id').html(html_temp);
+        }else if(result.status==0){
+            alert(result.message);
+            return;
+        }
     })
     .fail(function() {
         console.log("error");
-    })
-    .always(function() {
-        console.log("complete");
     });
 
 

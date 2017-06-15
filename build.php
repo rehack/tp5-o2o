@@ -9,6 +9,7 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
+// 执行命令 php think build --config build.php
 return [
     // 生成应用公共文件
     /*'__file__' => ['common.php', 'config.php', 'database.php'],
@@ -25,5 +26,9 @@ return [
     'bis'=>[
         '__dir__'=>['controller', 'model', 'view'],
         'controller'=>['Register','Login'],
+    ],
+    'api'=>[
+        '__dir__'=>['controller','view'],
+        'controller'=>['Image']
     ],
 ];
