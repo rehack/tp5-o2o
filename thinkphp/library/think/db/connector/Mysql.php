@@ -13,7 +13,7 @@ namespace think\db\connector;
 
 use PDO;
 use think\db\Connection;
-use think\Log;
+use think\db\Query;
 
 /**
  * mysql数据库驱动
@@ -22,6 +22,28 @@ class Mysql extends Connection
 {
 
     protected $builder = '\\think\\db\\builder\\Mysql';
+
+    /**
+     * 初始化
+     * @access protected
+     * @return void
+     */
+    protected function initialize()
+    {
+        // Point类型支持
+        Query::extend('point', function ($query, $field, $value = null, $fun = 'GeomFromText', $type = 'POINT') {
+            if (!is_null($value)) {
+                $query->data($field, ['point', $value, $fun, $type]);
+            } else {
+                if (is_string($field)) {
+                    $field = explode(',', $field);
+                }
+                $query->setOption('point', $field);
+            }
+
+            return $query;
+        });
+    }
 
     /**
      * 解析pdo连接的dsn信息
@@ -37,9 +59,11 @@ class Mysql extends Connection
         } elseif (!empty($config['socket'])) {
             $dsn .= ';unix_socket=' . $config['socket'];
         }
+
         if (!empty($config['charset'])) {
             $dsn .= ';charset=' . $config['charset'];
         }
+
         return $dsn;
     }
 
@@ -51,22 +75,20 @@ class Mysql extends Connection
      */
     public function getFields($tableName)
     {
-        $this->initConnect(false);
         list($tableName) = explode(' ', $tableName);
+
         if (false === strpos($tableName, '`')) {
             if (strpos($tableName, '.')) {
                 $tableName = str_replace('.', '`.`', $tableName);
             }
             $tableName = '`' . $tableName . '`';
         }
-        $sql = 'SHOW COLUMNS FROM ' . $tableName;
-        // 调试开始
-        $this->debug(true);
-        $pdo = $this->linkID->query($sql);
-        // 调试结束
-        $this->debug(false, $sql);
+
+        $sql    = 'SHOW COLUMNS FROM ' . $tableName;
+        $pdo    = $this->query($sql, [], false, true);
         $result = $pdo->fetchAll(PDO::FETCH_ASSOC);
         $info   = [];
+
         if ($result) {
             foreach ($result as $key => $val) {
                 $val                 = array_change_key_case($val);
@@ -80,6 +102,7 @@ class Mysql extends Connection
                 ];
             }
         }
+
         return $this->fieldCase($info);
     }
 
@@ -91,18 +114,15 @@ class Mysql extends Connection
      */
     public function getTables($dbName = '')
     {
-        $this->initConnect(false);
-        $sql = !empty($dbName) ? 'SHOW TABLES FROM ' . $dbName : 'SHOW TABLES ';
-        // 调试开始
-        $this->debug(true);
-        $pdo = $this->linkID->query($sql);
-        // 调试结束
-        $this->debug(false, $sql);
+        $sql    = !empty($dbName) ? 'SHOW TABLES FROM ' . $dbName : 'SHOW TABLES ';
+        $pdo    = $this->query($sql, [], false, true);
         $result = $pdo->fetchAll(PDO::FETCH_ASSOC);
         $info   = [];
+
         foreach ($result as $key => $val) {
             $info[$key] = current($val);
         }
+
         return $info;
     }
 
@@ -117,11 +137,13 @@ class Mysql extends Connection
         $pdo    = $this->linkID->query("EXPLAIN " . $sql);
         $result = $pdo->fetch(PDO::FETCH_ASSOC);
         $result = array_change_key_case($result);
+
         if (isset($result['extra'])) {
             if (strpos($result['extra'], 'filesort') || strpos($result['extra'], 'temporary')) {
-                Log::record('SQL:' . $this->queryStr . '[' . $result['extra'] . ']', 'warn');
+                $this->log('SQL:' . $this->queryStr . '[' . $result['extra'] . ']', 'warn');
             }
         }
+
         return $result;
     }
 

@@ -2,7 +2,6 @@
 
 /**
  * 用法：
- * load_trait('controller/Jump');
  * class index
  * {
  *     use \traits\controller\Jump;
@@ -14,13 +13,10 @@
  */
 namespace traits\controller;
 
-use think\Config;
 use think\exception\HttpResponseException;
-use think\Request;
+use think\Facade;
 use think\Response;
 use think\response\Redirect;
-use think\Url;
-use think\View as ViewTemplate;
 
 trait Jump
 {
@@ -37,15 +33,18 @@ trait Jump
     protected function success($msg = '', $url = null, $data = '', $wait = 3, array $header = [])
     {
         $code = 1;
+
         if (is_numeric($msg)) {
             $code = $msg;
             $msg  = '';
         }
+
         if (is_null($url) && isset($_SERVER["HTTP_REFERER"])) {
             $url = $_SERVER["HTTP_REFERER"];
         } elseif ('' !== $url) {
-            $url = (strpos($url, '://') || 0 === strpos($url, '/')) ? $url : Url::build($url);
+            $url = (strpos($url, '://') || 0 === strpos($url, '/')) ? $url : Facade::make('url')->build($url);
         }
+
         $result = [
             'code' => $code,
             'msg'  => $msg,
@@ -55,11 +54,16 @@ trait Jump
         ];
 
         $type = $this->getResponseType();
+
         if ('html' == strtolower($type)) {
-            $result = ViewTemplate::instance(Config::get('template'), Config::get('view_replace_str'))
-                ->fetch(Config::get('dispatch_success_tmpl'), $result);
+            $config = Facade::make('config');
+            $result = Facade::make('view')
+                ->init($config->get('template'), $config->get('view_replace_str'))
+                ->fetch($config->get('dispatch_success_tmpl'), $result);
         }
+
         $response = Response::create($result, $type)->header($header);
+
         throw new HttpResponseException($response);
     }
 
@@ -76,15 +80,18 @@ trait Jump
     protected function error($msg = '', $url = null, $data = '', $wait = 3, array $header = [])
     {
         $code = 0;
+
         if (is_numeric($msg)) {
             $code = $msg;
             $msg  = '';
         }
+
         if (is_null($url)) {
-            $url = Request::instance()->isAjax() ? '' : 'javascript:history.back(-1);';
+            $url = Facade::make('request')->isAjax() ? '' : 'javascript:history.back(-1);';
         } elseif ('' !== $url) {
-            $url = (strpos($url, '://') || 0 === strpos($url, '/')) ? $url : Url::build($url);
+            $url = (strpos($url, '://') || 0 === strpos($url, '/')) ? $url : Facade::make('url')->build($url);
         }
+
         $result = [
             'code' => $code,
             'msg'  => $msg,
@@ -94,11 +101,16 @@ trait Jump
         ];
 
         $type = $this->getResponseType();
+
         if ('html' == strtolower($type)) {
-            $result = ViewTemplate::instance(Config::get('template'), Config::get('view_replace_str'))
-                ->fetch(Config::get('dispatch_error_tmpl'), $result);
+            $config = Facade::make('config');
+            $result = Facade::make('view')
+                ->init($config->get('template'), $config->get('view_replace_str'))
+                ->fetch($config->get('dispatch_error_tmpl'), $result);
         }
+
         $response = Response::create($result, $type)->header($header);
+
         throw new HttpResponseException($response);
     }
 
@@ -120,8 +132,10 @@ trait Jump
             'time' => $_SERVER['REQUEST_TIME'],
             'data' => $data,
         ];
+
         $type     = $type ?: $this->getResponseType();
         $response = Response::create($result, $type)->header($header);
+
         throw new HttpResponseException($response);
     }
 
@@ -137,11 +151,14 @@ trait Jump
     protected function redirect($url, $params = [], $code = 302, $with = [])
     {
         $response = new Redirect($url);
+
         if (is_integer($params)) {
             $code   = $params;
             $params = [];
         }
+
         $response->code($code)->params($params)->with($with);
+
         throw new HttpResponseException($response);
     }
 
@@ -152,7 +169,11 @@ trait Jump
      */
     protected function getResponseType()
     {
-        $isAjax = Request::instance()->isAjax();
-        return $isAjax ? Config::get('default_ajax_return') : Config::get('default_return_type');
+        $isAjax = Facade::make('request')->isAjax();
+        $config = Facade::make('config');
+
+        return $isAjax
+        ? $config->get('default_ajax_return')
+        : $config->get('default_return_type');
     }
 }
