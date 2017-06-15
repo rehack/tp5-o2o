@@ -25,7 +25,7 @@ class Wincache extends Driver
     ];
 
     /**
-     * 构造函数
+     * 架构函数
      * @param array $options 缓存参数
      * @throws \BadFunctionCallException
      * @access public
@@ -35,6 +35,7 @@ class Wincache extends Driver
         if (!function_exists('wincache_ucache_info')) {
             throw new \BadFunctionCallException('not support: WinCache');
         }
+
         if (!empty($options)) {
             $this->options = array_merge($this->options, $options);
         }
@@ -48,7 +49,10 @@ class Wincache extends Driver
      */
     public function has($name)
     {
+        $this->readTimes++;
+
         $key = $this->getCacheKey($name);
+
         return wincache_ucache_exists($key);
     }
 
@@ -61,7 +65,10 @@ class Wincache extends Driver
      */
     public function get($name, $default = false)
     {
+        $this->readTimes++;
+
         $key = $this->getCacheKey($name);
+
         return wincache_ucache_exists($key) ? wincache_ucache_get($key) : $default;
     }
 
@@ -75,17 +82,23 @@ class Wincache extends Driver
      */
     public function set($name, $value, $expire = null)
     {
+        $this->writeTimes++;
+
         if (is_null($expire)) {
             $expire = $this->options['expire'];
         }
+
         $key = $this->getCacheKey($name);
+
         if ($this->tag && !$this->has($name)) {
             $first = true;
         }
+
         if (wincache_ucache_set($key, $value, $expire)) {
             isset($first) && $this->setTagItem($key);
             return true;
         }
+
         return false;
     }
 
@@ -98,7 +111,10 @@ class Wincache extends Driver
      */
     public function inc($name, $step = 1)
     {
+        $this->writeTimes++;
+
         $key = $this->getCacheKey($name);
+
         return wincache_ucache_inc($key, $step);
     }
 
@@ -111,7 +127,10 @@ class Wincache extends Driver
      */
     public function dec($name, $step = 1)
     {
+        $this->writeTimes++;
+
         $key = $this->getCacheKey($name);
+
         return wincache_ucache_dec($key, $step);
     }
 
@@ -123,6 +142,8 @@ class Wincache extends Driver
      */
     public function rm($name)
     {
+        $this->writeTimes++;
+
         return wincache_ucache_delete($this->getCacheKey($name));
     }
 
@@ -142,6 +163,7 @@ class Wincache extends Driver
             $this->rm('tag_' . md5($tag));
             return true;
         } else {
+            $this->writeTimes++;
             return wincache_ucache_clear();
         }
     }
