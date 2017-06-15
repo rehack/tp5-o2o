@@ -144,7 +144,7 @@ CREATE TABLE `o2o_category` (
 
 /*Data for the table `o2o_category` */
 
-insert  into `o2o_category`(`id`,`name`,`parent_id`,`listorder`,`status`,`create_time`,`update_time`) values (1,'美食',0,1,1,1494554461,1497421703),(2,'娱乐',0,2,1,1494554471,1497419813),(3,'酒店',0,3,0,1494554832,1497421709),(4,'休闲',0,4,1,1494554840,1497416764),(5,'丽人',0,5,1,1494554846,1497419930),(6,'KTV',2,0,1,1494555059,1494555059),(7,'电影',0,6,1,1495441804,1497419966);
+insert  into `o2o_category`(`id`,`name`,`parent_id`,`listorder`,`status`,`create_time`,`update_time`) values (1,'美食',0,1,1,1494554461,1497502058),(2,'娱乐',0,2,0,1494554471,1497493648),(3,'酒店',0,3,1,1494554832,1497491979),(4,'休闲',0,4,1,1494554840,1497495332),(5,'丽人',0,5,1,1494554846,1497496072),(6,'KTV',2,0,1,1494555059,1494555059),(7,'电影',0,6,0,1495441804,1497496081);
 
 /*Table structure for table `o2o_city` */
 
@@ -155,6 +155,7 @@ CREATE TABLE `o2o_city` (
   `name` varchar(50) NOT NULL DEFAULT '',
   `uname` varchar(50) NOT NULL DEFAULT '',
   `parent_id` int(10) unsigned NOT NULL DEFAULT '0',
+  `is_default` int(3) unsigned NOT NULL DEFAULT '0',
   `listorder` int(8) unsigned NOT NULL DEFAULT '0',
   `status` tinyint(1) NOT NULL DEFAULT '0',
   `create_time` int(11) unsigned NOT NULL DEFAULT '0',
@@ -162,9 +163,11 @@ CREATE TABLE `o2o_city` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uname` (`uname`),
   KEY `parent_id` (`parent_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8;
 
 /*Data for the table `o2o_city` */
+
+insert  into `o2o_city`(`id`,`name`,`uname`,`parent_id`,`is_default`,`listorder`,`status`,`create_time`,`update_time`) values (1,'北京','beijing1',0,0,0,1,1474013959,0),(2,'北京','beijing',1,0,0,1,1474014007,0),(4,'江西','jiangxi',0,0,0,1,1474014162,0),(5,'南昌','nanchang',4,1,0,1,1474014181,0),(6,'上饶','shangrao',4,0,0,1,1474014193,0),(7,'抚州','fuzhou',4,0,0,1,1474014204,0),(8,'景德镇','jdz',4,0,0,1,1474014220,0),(9,'九江','jiujiang',4,0,0,1,0,0),(10,'赣州','ganzhou',4,0,0,1,0,0),(11,'萍乡','pingxiang',4,0,0,1,0,0),(12,'宜春','yichun',4,0,0,1,0,0),(13,'吉安','jian',4,0,0,1,0,0);
 
 /*Table structure for table `o2o_deal` */
 

@@ -100,7 +100,12 @@ class Category extends Controller
     public function status(){
         $data=input('param.');
         // dump($data);
-        $data['status']=$data['status']=='正常'?0:1;
+        // $data['status']=$data['status']=='正常'?0:1;
+        if($data['status']=='正常'){
+            $data['status']=0;
+        }elseif ($data['status']=='待审') {
+            $data['status']=1;
+        }
         // dump($data['status']);die;
         $validate = validate('Category');
         if(!$validate->scene('status')->check($data)){

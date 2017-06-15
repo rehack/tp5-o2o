@@ -50,3 +50,28 @@ $('.listorder input').blur(function(){
     });
 
 })
+
+// 城市二级联动
+$(".cityId").change(function(){
+    city_id=$(this).val();
+    // 发送请求
+    url=SCOPE.city_url;
+    alert(url)
+    $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {param1: 'value1'},
+    })
+    .done(function() {
+        console.log("success");
+    })
+    .fail(function() {
+        console.log("error");
+    })
+    .always(function() {
+        console.log("complete");
+    });
+
+
+})
