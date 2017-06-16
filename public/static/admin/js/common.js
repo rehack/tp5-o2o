@@ -49,7 +49,7 @@ $('.listorder input').blur(function(){
         console.log("error");
     });
 
-})
+});
 
 // 城市二级联动
 $(".cityId").change(function(){
@@ -68,12 +68,12 @@ $(".cityId").change(function(){
         if(result.status==1){
             // 将数据填充到html
             data=result.data;
-            html_temp='';
+            city_html_temp='';
 
             $(data).each(function(i){
-                html_temp+=`<option value="${this.id}">${this.name}</option>`;
+                city_html_temp+=`<option value="${this.id}">${this.name}</option>`;
             });
-            $('.se_city_id').html(html_temp);
+            $('.se_city_id').html(city_html_temp);
         }else if(result.status==0){
             alert(result.message);
             return;
@@ -82,6 +82,37 @@ $(".cityId").change(function(){
     .fail(function() {
         console.log("error");
     });
+});
 
+// 二级生活服务分类联动
+$(".categoryId").change(function(){
+    category_id=$(this).val();
+    // 发送请求
+    url=SCOPE.category_url;
+    // alert(url)
+    postData={'id':category_id};
+    $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: postData,
+    })
+    .done(function(result) {
+        if(result.status==1){
+            // 将数据填充到html
+            data=result.data;
+            category_html_temp='';
 
-})
+            $(data).each(function(i){
+                category_html_temp+=`<label><input name="se_category_id[]" id="checkbox-moban" type="checkbox" value="${this.id}" />${this.name}</label> `;
+            });
+            $('.se_category_id').html(category_html_temp);
+        }else if(result.status==0){
+            alert(result.message);
+            return;
+        }
+    })
+    .fail(function() {
+        console.log("error");
+    });
+});

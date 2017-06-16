@@ -110,8 +110,9 @@
 			<div class="formControls col-xs-8 col-sm-3"> <span class="select-box">
 				<select name="category_id" class="select categoryId">
 					<option value="0">--请选择--</option>
-
-					<option value=""></option>
+					{volist name='categorys' id='vo'}
+					<option value="{$vo.id}">{$vo.name}</option>
+					{/volist}
 
 				</select>
 				</span>
@@ -178,6 +179,7 @@
 <script>
 	var SCOPE={
 		'city_url':'{:url('api/city/getCitysByParentId')}',
+		'category_url':'{:url('api/category/getCategoryByParentId')}',
 	};
 </script>
 <!--分配编辑器-->

@@ -47,6 +47,22 @@ class Category extends Model{
         return $result;
     }
 
+    // 通过parentId查询二级分类
+    public function getNormalCategoryByParentId($parentId=0){
+        $data=[
+            'status'=>1,
+            'parent_id'=>$parentId,
+        ];
+
+        $order=[
+            'id'=>'desc',
+        ];
+
+        return $this->where($data)
+            ->order($order)
+            ->select();
+    }
+
 
     // 状态-获取器
     public function getStatusAttr($value)
