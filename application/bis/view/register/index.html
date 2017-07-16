@@ -36,7 +36,10 @@
 		<div class="row cl">
               <label class="form-label col-xs-4 col-sm-2">缩略图：</label>
               <div class="formControls col-xs-8 col-sm-9">
-                <input id="file_upload"  type="file" multiple="true" >
+              <!--用来存放item-->
+                  <div id="fileList" class="uploader-list"></div>
+                <!-- <input id="file_upload"  type="file" multiple="true" > -->
+                <div id="file_upload">选择图片</div>
                 <img style="display: none" id="upload_org_code_img" src="" width="150" height="150">
                 <input id="file_upload_image" name="logo" type="hidden" multiple="true" value="">
               </div>
@@ -168,6 +171,15 @@
 		</div>
 	</form>
 </article>
+<script>
+	var urls={
+		'city_url':'{:url('api/city/getCitysByParentId')}',
+		'category_url':'{:url('api/category/getCategoryByParentId')}',
+		'upload_url':'{:url('api/image/upload')}',
+	};
+</script>
+
+
 
 <!--包含尾部文件-->
 {include file="public/footer" /}
@@ -176,12 +188,7 @@
 <script type="text/javascript" src="__STATIC__/admin/hui/lib/ueditor/1.4.3/lang/zh-cn/zh-cn.js"></script>
 
 
-<script>
-	var SCOPE={
-		'city_url':'{:url('api/city/getCitysByParentId')}',
-		'category_url':'{:url('api/category/getCategoryByParentId')}',
-	};
-</script>
+
 <!--分配编辑器-->
 <script>
 $(function(){

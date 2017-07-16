@@ -1,4 +1,3 @@
-
 /*页面 全屏-添加*/
 function o2o_edit(title,url){
     var index = layer.open({
@@ -55,7 +54,7 @@ $('.listorder input').blur(function(){
 $(".cityId").change(function(){
     city_id=$(this).val();
     // 发送请求
-    url=SCOPE.city_url;
+    url=urls.city_url;
     // alert(url)
     postData={'id':city_id};
     $.ajax({
@@ -88,7 +87,7 @@ $(".cityId").change(function(){
 $(".categoryId").change(function(){
     category_id=$(this).val();
     // 发送请求
-    url=SCOPE.category_url;
+    url=urls.category_url;
     // alert(url)
     postData={'id':category_id};
     $.ajax({
